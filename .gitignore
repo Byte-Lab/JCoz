@@ -1,4 +1,8 @@
+*.coz
+build-64/
 *.so
 *.class
 *.project
 *.swp
+questions
+*.txt
