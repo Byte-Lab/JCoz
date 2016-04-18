@@ -39,6 +39,35 @@
           <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
         </div>
 
+<h2>Checkpoint</h2>
+    <h3>Schedule</h3>
+          <p>See schedule at bottom of page for most up-to-date schedule</p>
+
+    <h3>Work completed</h3>
+        <p>We have completed almost all of the goals listed in the first 3 weeks of our schedule; that is, getting oriented with the JVMTI and JNI interfaces, 
+          adding hooks and event handlers for all of the profiling events we need, adding data structures for maintaining all profiling metrics, 
+          adding virtual speedup logic, and calculating and displaying profile output / speedup information. However, we currently only support end-to-end profiling
+          (as opposed to throughput profiling). In addition, the JVMTI does not always provide sufficiently granular results when being queried for threads' stack
+          traces. We have a potential solution in mind to solve this that we are currently working on, but if this is not successful we will just use the
+          normal JVMTI stack tracing interface and instead calculate speedups based on function calls rather than lines.
+        </p>
+
+        <p>
+           We are on-schedule in terms of our goals and deliverables. If we continue to make progress at the current rate, we expect to be able to complete
+           JCoz according to the original schedule, as well as utilize it in profiling major java libraries. Though we do not yet have profiler results, we
+           intend to profile major java libraries, hopefully optimize them, and show these results in our presentation for the parallel competition.
+        </p>
+
+    <h3>Concerns</h3>
+        <p>
+            We have two concerning issues. As mentioned above, we are concerned that the JVMTI does not provide an interface for getting sufficiently granular
+            stack trace results during profiling. In addition, we are worried that our profiler will have too much overhead, which can render a causal profiler 
+            to be rather ineffective. We are keeping this in mind in our implementation, and are employing optimizations mentioned in the paper
+            (such as sampling and minimal synchronization) to keep the profiler's overhead as low as possible. Unfortunately, until we complete the profiler and
+            use it to profile libraries, we won't know if our profiler is sufficiently lightweight to be effective.
+        </p>
+
+<h2>Original Writeup</h2>
 
 <!-- Summary -->
 <h3><a id="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Project Summary</h3>
