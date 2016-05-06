@@ -39,169 +39,156 @@
           <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
         </div>
 
-<h2>Checkpoint</h2>
-    <h3>Schedule</h3>
-          <p>See schedule at bottom of page for most up-to-date schedule</p>
+    <h2>Summary</h2>
+          <p>
+              We implemented a causal Java profiler, and were able to use it to optimize the <a href="http://www.h2database.com/html/main.html">Java H2 Database</a>; a widely used, mature in-memory Java database engine.
+              Our profiler is also very lightweight, with roughly 10-30% runtime overhead (beating major profilers such as hprof, JRat, and YourKit).
+          </p>
 
-    <h3>Work completed</h3>
-        <p>We have completed almost all of the goals listed in the first 3 weeks of our schedule; that is, getting oriented with the JVMTI and JNI interfaces, 
-          adding hooks and event handlers for all of the profiling events we need, adding data structures for maintaining all profiling metrics, 
-          adding virtual speedup logic, and calculating and displaying profile output / speedup information. However, we currently only support end-to-end profiling
-          (as opposed to throughput profiling). In addition, the JVMTI does not always provide sufficiently granular results when being queried for threads' stack
-          traces. We have a potential solution in mind to solve this that we are currently working on, but if this is not successful we will just use the
-          normal JVMTI stack tracing interface and instead calculate speedups based on function calls rather than lines.
-        </p>
+    <h2>Background</h2>
+          <p>
+              Optimizing parallel programs is hard...very hard. As we've learned in this class, there are many moving parts to consider. For example, if threads are write sharing a global variable
+              it can cause a ton of interconnect traffic and cache misses. Or perhaps Ahmdal's law means that we'll never reach our performance goal before we even get started, and we end up
+              wasting time optimizing a program that will never see any performance benefit no matter how hard we try. Even worse,
+              in a parallel program, speeding up certain parts of your code can sometimes even cause a performance <i>hit</i> (for example, when speeding up a line of code causes increased
+              lock contention). Is it possible to handle all of this complexity in a profiler, and provide accurate results so programmers know exactly where to look to optimize
+              their parallel programs? That's where causal profiling comes in.
+          </p>
+          <p>
+              For our project, we implemented a causal Java profiler; that is, a tool for profiling multithreaded Java programs. A causal profiler detects how changing a line would
+              affect performance using something called <i>virtual speedup</i>. At some frequency throughout the runtime of the program, we run an "experiment" in which we
+              choose a line being executed among all threads (randomly), and a speedup amount
+              between 0 - 100%, to measure how speeding up that line of code by the given speedup percent would affect overall program runtime.
+              During this experiment, when any thread enters the selected line, all other threads are suspended for a period of time depending
+              on the speedup chosen for that experiment. We measure the throughput achieved during the experiment, and use it
+              to determine how speeding up the line would affect throughput / runtime. Thus, by freezing the other threads and measuring how throughput changes, we have "virtually" sped
+              the line being executed by the given thread.
+          </p>
+          <p>
+              The following caption is a useful visualization of virtual speedup (caption credited to Charlie Curtsinger and Emery Burger whose paper is cited in the references section): <br /> <br />
+              <img src="./virtual_speedup_picture.png" />
+          </p>
+          <p>
+              The above approach to profiling multithreaded programs has many benefits over the traditional performance monitoring profilers.
+              For example, observe the following toy program:
+              <tt>
+                  <br /><br />void a() {<br />
+                  &emsp;for(volatile size_t x = 0; x < 12000000000; x++) {} <br />
+                  }<br />
+                  void b() {<br />
+                  &emsp;for(volatile size_t x = 0; x < 8000000000; x++) {}<br />
+                  }<br />
+                  <br />
+                  int main() {<br />
+                  &emsp;thread thread_a(a), thread_b(b);<br />
+                  &emsp;thread_a.join(); thread_b.join();<br />
+                  }<br />
+              </tt><br />
+              For this program, an instrumentation profiler, hprof, gives us the following output:
+              <tt>
+                  <br /><br />
+                  rank   self  accum   count trace method<br />
+                  1 37.50% 37.50%       2 301435 java.lang.Thread.join // join statements<br />
+                  2 37.50% 75.00%       1 301434 test.Test$ThreadTest1.run // a()<br />
+                  3 24.96% 99.96%       1 301404 test.Test$ThreadTest2.run // b()<br /><br />
+              </tt>
 
-        <p>
-           We are on-schedule in terms of our goals and deliverables. If we continue to make progress at the current rate, we expect to be able to complete
-           JCoz according to the original schedule, as well as utilize it in profiling major java libraries. Though we do not yet have profiler results, we
-           intend to profile major java libraries, hopefully optimize them, and show these results in our presentation for the parallel competition.
-        </p>
+              As you can see, hprof tells us that we spend over 1/3 of our time in a join statement and in <tt>a()</tt>,
+              and 1/4 of our time in <tt>b()</tt> In reality, optimizing <tt>b()</tt> would have no affect whatsoever on program runtime,
+              and optimizing the join statement is meaningless. We see similar results when running hprof's sampling profiler:
 
-    <h3>Concerns</h3>
-        <p>
-            We have two concerning issues. As mentioned above, we are concerned that the JVMTI does not provide an interface for getting sufficiently granular
-            stack trace results during profiling. In addition, we are worried that our profiler will have too much overhead, which can render a causal profiler 
-            to be rather ineffective. We are keeping this in mind in our implementation, and are employing optimizations mentioned in the paper
-            (such as sampling and minimal synchronization) to keep the profiler's overhead as low as possible. Unfortunately, until we complete the profiler and
-            use it to profile libraries, we won't know if our profiler is sufficiently lightweight to be effective.
-        </p>
+              <tt>
+                  <br /><br />
+                  rank   self  accum   count trace method<br />
+                  1 59.87% 59.87%    4836 300032 test.Test$ThreadTest1.run // a()<br />
+                  2 40.10% 99.98%    3239 300033 test.Test$ThreadTest2.run // b()<br /><br />
+              </tt>
 
-<h2>Original Writeup</h2>
+              Though this profile again indicates that we spend more execution time in <tt>a()</tt>,
+              it still does not indicate that optimizing <tt>b()</tt> does nothing for runtime and that
+              after we speed up <tt>a()</tt> by 33% that the program runtime will top off as <tt>b()</tt>
+              will become the bottleneck.
+              </p>
 
-<!-- Summary -->
-<h3><a id="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Project Summary</h3>
-<p>
-   We are going to implement a causal profiler for parallel Java programs.
-   We will test the profiler on a few widely used libraries and attempt to optimize those libraries with our results.
-</p>
+              <p>
+              Now, observe the output of JCoz on the same exact program:
 
-<!-- Background -->
-<h3><a id="designer-templates" class="anchor" href="#designer-templates" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Background</h3>
-<p>
-    We are going to implement a Java version of the <a href="https://github.com/plasma-umass/coz" target="_blank">Coz profiler</a> that was presented at SOSP 2015
-    and awarded best paper. The profiler works by randomly selecting lines in a program, freezing all other threads for a randomly
-    chosen period of time while the current threads run, and measuring the virtual speedup of the program relative to <i>progress points</i> chosen by the programmer,
-    or end to end runtime of the program. We have chosen to implement the project for Java because it has already been written for C/C++ by the authors of the original
-    paper linked above. In addition, a huge portion of the business software market is written in Java, and this could potentially be a valuable tool with deep market
-    reach if successful.
-</p>
+                <i><b>INSERT GRAPH OF OUTPUT ONCE IT'S DONE RUNNING</b></i>
 
-<p>
-    We feel that this new approach to profiling is very vauable for measuring parallel programs. Current profilers simply measure the time spent in a given function,
-    and the number of times that function is called. This fails to measure subtleties of how optimizations can imporve or harm parallel program runtimes. Take the following
-    example (taken from <a href="https://github.com/plasma-umass/coz/raw/master/Coz-Curtsinger-Berger-SOSP2015.pdf" target="_blank">https://github.com/plasma-umass/coz/raw/master/Coz-Curtsinger-Berger-SOSP2015.pdf</a>):
-    <tt>
-        <br />void a() {<br />
-        &emsp;for(volatile size_t x = 0; x < 20000000000; x++) {} <br />
-        }<br />
-        void b() {<br />
-        &emsp;for(volatile size_t x = 0; x < 19000000000; x++) {}<br />
-        }<br />
-        <br />
-        int main() {<br />
-        &emsp;thread thread_a(a), thread_b(b);<br />
-        &emsp;thread_a.join(); thread_b.join();<br />
-        }<br />
-    </tt><br />
+                We demonstrate more results below in the results section.
+              </p>
 
-    A normal profiler such as <tt>gprof</tt> might indicate that we spent 55% of the time in <tt>a()</tt>, and 45% of the runtime in <tt>b()</tt>. However,
-    we know that speeding up <tt>b()</tt> would result in no speedup on a 2+ core machine. A causal profiler would reveal this, because a virtual speedup of <tt>b()</tt>
-    wouldn't result in an overall speedup of the program. In addition, the ease of understanding the output of a causal profiler is valuable.
-    While some profilers (i.e. <tt>perf</tt> showing how many cache misses occur) would attempt to indicate how to fix a problem,
-    a causal profiler simply tells you where you should focus your development effort to achieve maximum speedup.
-</p>
+              <h2>Approach</h2>
+              <p>
+                  The runtime of our profiler generally follows this workflow:
+                  <ol>
+                      <li>Start the program, and set a breakpoint (a "progress point") at a line in the program that was chosen by the user to measure throughput</li>
+                      <li>Wait for a given warmup period to avoid overhead during the initial part of a program where the progress point will not be hit</li>
+                      <li>Starting running experiments. An experiment includes the following steps:
+                            <ol>
+                                <li>Choose a line for speedup randomly among the currently executing threads, as well as a random speedup between 0 - 100%</li>
+                                <li>
+                                    Every 1ms, send a SIGPROF signal to all user threads, in which they check whether they are on the experiment line. If so,
+                                    all other threads are frozen for a period of time dependent on the speedup chosen for this experiment, and the given thread continues
+                                    to execute
+                                </li>
+                                <li>
+                                    Throughout the runtime of the experiment, keep track of how many times a given "progress-point" line is hit by all threads. This
+                                    progress point line is how we measure how throughput changes when we virtually speed up a line
+                                </li>
+                                <li>After a certain amount of time, end the experiment and write the metrics to a file buffer</li>
+                            </ol>
+                      </li>
+                      <li>When the program has finished running, flush the file buffer</li>
+                  </ol>
+                  A program can be run more than once -- the results are simply appended to the given profile output.
+              </p>
+              <p>
+                  In building our tool, we leveraged the <a href="https://docs.oracle.com/javase/8/docs/platform/jvmti/jvmti.html">JVM Tool Interface (JVMTI)</a>
+                  to get thread stack traces, listen for when new user threads are created, and existing threads are killed, and map byte code instructions to source file
+                  line numbers. Our profiler is written in C++ as a Java Agent, and we target Linux machines.
+              </p>
+              <p>
+                  We ocassionally referenced the <a href="https://github.com/plasma-umass/coz">original COZ implementation</a> 
+                  to gain insights into how they implemented certain techniques. In addition, we integrated parts of our code with the
+                  <a href="https://github.com/dcapwell/lightweight-java-profiler">lightweight-java-profiler</a> to take advantage of their approach to
+                  using the undocumented JVMTI method <tt>AsyncGetCallTrace</tt>. The documented JVMTI method for getting thread stack traces, <tt>GetStackTrace</tt>,
+                  waits until a "safe point" before returning the stack trace. This would have killed our profiler, as the JVMTI would have masked opportunities for identifying
+                  specific lines where bottlenecks can occur (as we know, parallel bottlenecks can often be relegated to a single line).
+              </p>
 
-<!-- The Challenge -->
-<h3><a id="creating-pages-manually" class="anchor" href="#creating-pages-manually" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>The Challenge</h3>
-<p>
-    Though the causal approach to profiling is elegant and surprisingly simple, we will be interacting with the JVM at a level that requires understanding of how the
-    JVM works, how to freeze and resume threads, and how to map progress points to source code. In addition, though at a high level causal profiling is rather simple,
-    there are technical subtleties that will require substantial planning and careful design. For example, it is important to choose source lines to virtually
-    speed-up uniformly at random to avoid introducing bias into the profiler. Also, I/O introduces quite a bit of complexity, as we still want to have threads that
-    are waiting on I/O be frozen when they return from that I/O to achieve accurate virtual speedup. This will likely be a stretch goal, but subtleties such as these
-    occur quite frequently in causal profiling and it may prove challenging to design a profiler that addresses them well.
-</p>
+            <h2>Results</h2>
+              <p>
+                  We achieved success in two ways. Firstly, we are confident that our profiler is accurate and robust to many different types of parallel programs, as well as
+                  sufficiently lightweight so as to accurately reflect program runtimes and speedups. We tested our
+                  profiler on a variety of toy examples that exemplify various parallal patterns and found that our profiler returned the expected results for those examples. In addition,
+                  we were able to add several optimizations to our profiler that make it robust to scaling out to any number of threads (on a single node), as well as having the option to
+                  either measure end-to-end runtime of the program, or measure throughput at a given point in the codebase being profiled. In addition, we were able to use our profiler
+                  to find a bottleneck in a well known, mature library: the <a href="http://www.h2database.com/html/main.html">Java H2 Database</a>.
+              </p>
+                
+              <p>
+                  The crowning achievement of the Java 
+              </p>
+              
+          
+          <!--
+              <p>
+                  JCoz joins a community of existing Java profilers, including 
+                  <a href="http://docs.oracle.com/javase/7/docs/technotes/samples/hprof.html">hprof</a>,
+                  <a href="http://jrat.sourceforge.net/">JRat</a>,
+                  <a href="https://www.yourkit.com/java/profiler/">YourKit</a>,
+                  and a <a href="https://github.com/dcapwell/lightweight-java-profiler">lightweight java profiler</a> by
+                  Jeremy Manson and David Capwell.
+              </p>
+              -->
 
-<!-- Resources -->
-<h3><a id="authors-and-contributors" class="anchor" href="#authors-and-contributors" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Resources</h3>
-<p>
-    We will perform development on a Unix system in C++. Java provides a robust API for interacting with the JVM (the Java Virtual Machine Tool Interface), which we
-    will utilize heavily in our development. Though our codebase will be starting from scratch, the design of our project will follow from the codebase written
-    by the paper authors for C/C++. In addition, we will be implementing the profiler described in the paper, so it will be a guide when designing and building
-    our project.
-</p>
-<p>
-    We have considered testing our profiler on a variety of different machines when we attempt to optimize well known Java libraries, so having access to latedays,
-    or other high performance / multicore / multi-CPU / etc machines may prove useful during this testing phase.
-</p>
-
-<!-- Goals and Deliverables -->
-<h3><a id="support-or-contact" class="anchor" href="#support-or-contact" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Goals and Deliverables</h3>
-
-<p>
-    <h4>Plan to Achieve</h4>
-    <ol>
-        <li>A working causal profiler with end to end latency metrics (without handling disc or network I/O)</li>
-        <li>Add ability to mark progress points for measuring program throughput with finer granularity</li>
-        <li>Profile some well known Java libraries (tbd)</li>
-    </ol>
-    We believe that we can achieve the above goals because the above features have been implemented in the original version of Coz in C++, so we believe that
-    it should be possible to implement them for Java as well. In addition, we have done some exploration of the JVMTI API, and we believe that it is should provide
-    the interface necessary to implement our profiler.
-
-    <h4>Hope to Achieve</h4>
-    <ol>
-        <li>After profiling Java libraries, optimize those libraries and demonstrate results</li>
-        <li>Add latency measurement feature</li>
-        <li>Add I/O handling</li>
-    </ol>
-    Here are some Java libraries, some of which we are considering optimizing:
-    <ul>
-        <li><a href="http://tomcat.apache.org/" target="_blank">Tomcat</a></li>
-        <li><a href="http://math.nist.gov/javanumerics/jama/" target="_blank">JAMA (a Java Matrix package)</a></li>
-        <li><a href="http://www.ehcache.org/" target="_blank">Java EHCache</a></li>
-        <li><a href="http://www.h2database.com/html/main.html" target="_blank">Java H2 Database</a></li>
-        <li><a href="https://projects.apache.org/project.html?activemq" target="_blank">Apache ActiveMQ</a></li>
-        <li><a href="https://github.com/apache/hive" target="_blank">Apache Hive</a></li>
-        <li><a href="https://projects.apache.org/project.html?kafka" target="_blank">Apache Kafka (not Java but runs on JVM)</a></li>
-        <li><a href="https://lucene.apache.org/" target="_blank">Apache Lucene</a></li>
-        <li><a href="https://projects.apache.org/project.html?giraph" target="_blank">Apache Giraph</a></li>
-        <li><a href="https://projects.apache.org/project.html?hbase" target="_blank">Apache HBase</a></li>
-        <li><a href="http://hsqldb.org/" target="_blank">Hyper SQL Database</a></li>
-    </ul>
-    And here is a link to <a href="https://projects.apache.org/projects.html?language" target="_blank">more Apache projects</a>
-    <br /><br />
-
-    <h4>Parallelism Competition</h4>
-    We will demonstrate the results of running our profiler on toy problems to indicate the basic features of the profiler.
-    If we are able to optimize well known Java libraries, we will explain our optimizations, 
-    how JCoz helped us to locate those optimizations, and illustrate the differences in runtime.
-</p>
-
-<!-- Platform choice -->
-<h3><a id="support-or-contact" class="anchor" href="#support-or-contact" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Platform Choice</h3>
-<p>
-    Multicore Unix systems are an appropriate platform for this project. We hope to test our code on a variety of hardware platforms, including
-    personal computers and high performance machines. It makes sense to test using a variety of systems to validate our project idea.
-</p>
-
-<!-- Schedule -->
-<h3><a id="support-or-contact" class="anchor" href="#support-or-contact" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Schedule</h3>
-<p>
-    <ul>
-        <li>4/03 - 4/09 -- Get oriented with JVMTI and intercept all events we need to intercept (i.e. breakpoints, load classes, etc)</li>
-        <li>4/10 - 4/16 -- Add data structures for maintaining profiling information and add virtual speedup logic</li>
-        <li>4/17 - 4/23 -- Calculate speedup information and output profile information from data structures (output a profile)</li>
-        <li>4/24 - 4/30 -- Profile toy examples and profile more mature parallel Java libraries</li>
-        <li>5/01 - 5/09 -- Attempt to optimize Java libraries and create final presentation</li>
-    </ul>
-</p>
-
-</section>
-
-</div>
-    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
-    
+          <h2>References</h2>
+              <p>
+                  <ol>
+                      <li>C. Curtsinger, E. Berger. COZ: Finding Code that Counts with Causal Profiling. <i>SOSP '15 ACM SIGOPS</i></li>
+                  </ol>
+              </p>
+      </section>
   </body>
 </html>
