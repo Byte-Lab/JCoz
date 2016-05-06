@@ -159,19 +159,41 @@
 
             <h2>Results</h2>
               <p>
-                  We achieved success in two ways. Firstly, we are confident that our profiler is accurate and robust to many different types of parallel programs, as well as
-                  sufficiently lightweight so as to accurately reflect program runtimes and speedups. We tested our
-                  profiler on a variety of toy examples that exemplify various parallal patterns and found that our profiler returned the expected results for those examples. In addition,
-                  we were able to add several optimizations to our profiler that make it robust to scaling out to any number of threads (on a single node), as well as having the option to
-                  either measure end-to-end runtime of the program, or measure throughput at a given point in the codebase being profiled. In addition, we were able to use our profiler
-                  to find a bottleneck in a well known, mature library: the <a href="http://www.h2database.com/html/main.html">Java H2 Database</a>.
+                  We chose to measure performance with three different metrics:
+                  <ol>
+                    <li>
+                        Does our profiler gave us accurate results for toy programs that exhibited
+                        various examples of parallel programming (i.e. the example given above, threads thrashing on locks, Ahmald's law with serial execution, etc)?
+                    </li>
+                    <li>
+                        How much overhead is incurred from using our profiler?
+                    </li>
+                    <li>
+                        Can we use the profiler to find optimizations in complex, mature, and widely used libraries?
+                    </li>
+                  </ol>
+                  We were successful in all three of the above metrics, and cover each in more detail below.
               </p>
-                
+
               <p>
-                  The crowning achievement of the Java 
+                  Our first metric of success was our profiler's performance on simple Java programs that exhibited various paradigms of parallel programming. 
+                  We were able to measure this by running our profiler on many different, easy to understand toy examples, 
+                  and verifying that the profiler gave us the ouput we expected for all programs. We found that all examples were correctly profiled, though in some instances, many iterations of the program was required to build a large
+                  enough profile to have useful results.
               </p>
-              
-          
+
+              <p>
+                  Another metric of success for our profiler was the amount of runtime overhead incurred from using it.
+                  We found that our profiler was very lightweight, incurring roughly 10-40% runtime overhead for all programs that we profiled.
+                  This was consistently faster than most profilers we compared against, including JRat, YourKit and hprof, but it was slower than the lightweight-java-profiler.
+              </p>
+
+              <p>
+                  Perhaps most importantly, we were able to optimize real libraries with our profiler. Specifically, we were able to optimize 
+                  the <a href="http://www.h2database.com/html/main.html">Java H2 Database</a> by 20% using the standard <a href="http://dacapobench.org/">Dacapo Benchmark suite</a>,
+                  and we also identified an opportunity for optimization on the high performance, highly parallel 
+                  <a href="https://github.com/ujmp/universal-java-matrix-package">Universal Java Matrix Package</a> by using blocking to take better advantage of the cache.
+              </p>
           <!--
               <p>
                   JCoz joins a community of existing Java profilers, including 
