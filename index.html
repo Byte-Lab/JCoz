@@ -48,11 +48,10 @@
     <h2>Background</h2>
           <p>
               Optimizing parallel programs is hard...very hard. As we've learned in this class, there are many moving parts to consider. For example, if threads are write sharing a global variable
-              it can cause a ton of interconnect traffic and cache misses. Or perhaps Ahmdal's law means that we'll never reach our performance goal before we even get started, and we end up
-              wasting time optimizing a program that will never see any performance benefit no matter how hard we try. Even worse,
-              in a parallel program, speeding up certain parts of your code can sometimes even cause a performance <i>hit</i> (for example, when speeding up a line of code causes increased
+              it can cause excessive interconnect traffic and cache misses. Or perhaps Ahmdal's law prevents us from reaching our performance goal before we even get started. Even worse,
+              it could happen that speeding up certain parts of your code might even cause a performance <i>hit</i> (for example, when speeding up a line of code causes increased
               lock contention). Is it possible to handle all of this complexity in a profiler, and provide accurate results so programmers know exactly where to look to optimize
-              their parallel programs? That's where causal profiling comes in.
+              their parallel programs? It is -- with causal profiling.
           </p>
           <p>
               For our project, we implemented a causal Java profiler; that is, a tool for profiling multithreaded Java programs. A causal profiler detects how changing a line would
@@ -119,8 +118,10 @@
               </p>
 
               <h2>Approach</h2>
+
+              <h3>Profiler Workflow</h3>
               <p>
-                  The runtime of our profiler generally follows this workflow:
+                  Our profiler follows this workflow when profiling a program:
                   <ol>
                       <li>Start the program, and set a breakpoint (a "progress point") at a line in the program that was chosen by the user to measure throughput</li>
                       <li>Wait for a given warmup period to avoid overhead during the initial part of a program where the progress point will not be hit</li>
@@ -143,10 +144,26 @@
                   </ol>
                   A program can be run more than once -- the results are simply appended to the given profile output.
               </p>
+
+              <h3>Platform</h3>
+              <p>
+                  Our profiler is written in C++ as a Java Agent, and targets Linux machines with a JDK with Java >= 1.7 installed.
+                  Other than that, our project has no dependencies other than the standard C and C++ libraries. To interpret
+                  a profile output from our profiler, we used the <a href="http://plasma-umass.github.io/coz/">original COZ profile plotter</a>.
+              </p>
+
+             <h3>Libraries</h3>
               <p>
                   In building our tool, we leveraged the <a href="https://docs.oracle.com/javase/8/docs/platform/jvmti/jvmti.html">JVM Tool Interface (JVMTI)</a>
-                  to get thread stack traces, listen for when new user threads are created, and existing threads are killed, and map byte code instructions to source file
-                  line numbers. Our profiler is written in C++ as a Java Agent, and we target Linux machines.
+                  to get thread stack traces, listen for when new user threads are created, and existing threads are killed, map byte code instructions to source file
+                  line numbers, and set breakpoints. Though much of the interface was relatively straightforward and easy to use, we ran into a serious hurdle midway 
+                  through in obtaining stack traces in real time from the program. JVMTI only publicly exposes a <tt>GetThreadStack</tt> function that returns stack
+                  traces at "safe points". Had we been constrained to use this "safe" thread stack function, it would have severely degraded the utility of our 
+                  profiler because it may have skipped important lines to profile, or caused us to wait for some indefinite amount of time before being given the
+                  stack trace (which would have caused our sampling logic to be completely unpredictable). To get around this issue, we used the undocumented
+                  <tt>AsyncGetStackTrace</tt> function to get stack traces in non-safe points. It took quite a lot of scaffolding and patchy code to properly use
+                  this function, and we ended up integrating our code with the <a href="https://github.com/dcapwell/lightweight-java-profiler">lightweight-java-profiler</a>
+                  codebase, as they had previously added some complicated code to use the <tt>AsyncGetStackTrace</tt> function.
               </p>
               <p>
                   We ocassionally referenced the <a href="https://github.com/plasma-umass/coz">original COZ implementation</a> 
