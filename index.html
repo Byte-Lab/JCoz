@@ -165,7 +165,7 @@ rank   self  accum   count trace method
                       <li>Start the program, and set a breakpoint (a "progress point") at a line in the program that was chosen by the user to measure throughput</li>
                       <li>Wait for a given warmup period to avoid overhead during the initial part of a program where the progress point will not be hit</li>
                       <li>Starting running experiments. An experiment includes the following steps:
-                            <ol>
+                            <ol style="list-style-type: lower-alpha;">
                                 <li>Choose a line for speedup randomly among the currently executing threads, as well as a random speedup between 0 - 100%</li>
                                 <li>
                                     Every 1ms, send a SIGPROF signal to all user threads, in which they check whether they are on the experiment line. If so,
@@ -181,7 +181,8 @@ rank   self  accum   count trace method
                       </li>
                       <li>When the program has finished running, flush the file buffer</li>
                   </ol>
-                  A program can be run more than once -- the results are simply appended to the given profile output.
+                  Note that a program can be run more than once -- the results are simply appended to the given profile output (this allows the user
+                  to repeatedly run a program to gather as many samples as needed to build a full profile).
               </p>
 
               <h3>Platform</h3>
@@ -211,6 +212,17 @@ rank   self  accum   count trace method
                   they need to sleep by incrementing a global variable. This provides a nice tuning knob for configuring the profiler, as we can easily adjust
                   experiment times and sampling frequency to tune the runtime overhead and profiling granularity of JCoz.
               </p>
+
+              <h3>Iterations</h3>
+              <p>
+                  Though our project was mostly a single, linear implementation effort, we ended up needing to implement several optimizations.
+                  The biggest optimization we added was an optimization to avoid oversleeping when many threads were executing the same line in an experiment.
+                  We found that when this occurred, the runtime of the program drastically increased, as all threads would have to sleep <tt>(n - 1) * speedup</tt>
+                  time for every sample in which the threads were executing that line. To avoid this, we collected samples and only slept every 10 ms rather than
+                  on every sample. We also added a feature to allow the user to specify a warmup time on the command line to avoid the overhead of the profiler during warmup
+                  time when a progress point will not be hit, as well as a feature to perform exponential slowdown on the experiment time if the progress point is not being
+                  hit enough times during an experiment.
+              </p>
               <p>
                   We ocassionally referenced the <a href="https://github.com/plasma-umass/coz">original COZ implementation</a> 
                   to gain insights into how they implemented certain techniques. In addition, as mentioned above, we integrated parts of our code with the
@@ -224,7 +236,7 @@ rank   self  accum   count trace method
                   <ol>
                     <li>
                         Does our profiler gave us accurate results for toy programs that exhibited
-                        various examples of parallel programming (i.e. the example given above, threads thrashing on locks, Ahmald's law with serial execution, etc)?
+                        various examples of parallel programming (i.e. the example given above, threads thrashing on locks, Ahmdal's law with serial execution, etc)?
                     </li>
                     <li>
                         How much overhead is incurred from using our profiler?
