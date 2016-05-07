@@ -240,7 +240,19 @@ rank   self  accum   count trace method
                   Our first metric of success was our profiler's performance on simple Java programs that exhibited various paradigms of parallel programming. 
                   We were able to measure this by running our profiler on many different, easy to understand toy examples, 
                   and verifying that the profiler gave us the ouput we expected for all programs. We found that all examples were correctly profiled, though in some instances, many iterations of the program was required to build a large
-                  enough profile to have useful results.
+                  enough profile to have useful results. We ran our profiler on the following types of toy examples:
+                  <ol>
+                      <li>Two non-contending threads with different runtimes (shown above)</li>
+                      <li>Multiple non-contending threads with exactly the same runtimes (equal speedup opportunities in all threads)</li>
+                      <li>Two threads with the same runtimes where one is waiting on a lock (essentially serial execution -- equal speedup opportunities found)</li>
+                      <li>Multiple threads thrashing on a single lock (significant speedup found for the small section of code where a thread held the lock)</li>
+                  </ol>
+
+                  Though we do not include profile outputs for all of the above examples, we found that the profile outputs matched our expectations for all of the
+                  aforementioned examples. In addition, we intend to manufacture more toy examples in the future, including examples with threads that exhibit poor cache locality,
+                  threads that write to a global atomic variable, and threads that flood the interconnect with exessive traffic. We are confident that our
+                  profiler can at least correctly identify poor cache locality, as we were able to identify a bottleneck in the code in the Universal Java Matrix Package (UJMP)
+                  that exhibited very poor cache locality when multiplying dense matrices (though we did not have time to implement an optimization).
               </p>
 
               <p>
