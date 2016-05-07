@@ -270,6 +270,22 @@ rank   self  accum   count trace method
                   Since JCoz does not use the heavyweight insturmentation that is used by the JVisualVM profiling tool, it's overhead is similar to HPROF and JVisualVM profiling. 
               </p>
 
+              <p>
+                  One of our main goals for this project was to take an application of which we had little knowledge, run our profiler, and make a meaningfull improvment with little development time. We chose to profile the H2 TPCC benchmark using the Dacapo Java Benchmarking Suite. Our profile displayed the a line as the best opportunity for throughput improvement with the following graph. We ran on muir, a machine with 264GB of DRAM and 4 Intel Intel Xeon E5-4650 2.70 GHz processors.
+                  <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/h2_optimized_line_profile_output.png" /></div>
+              </p>
+
+              <p>
+                  Using the above profile, we discovered that a <tt>Thread.Wait()</tt> call meant to implement backoff of a failed transaction before retrying was causing an significant drop in throuhput performance. By reducing the wait time from a random time between 1 and 10 ms to 1-10 microseconds. Changing only this line we observed a throuhgput increase of about 19%. We had no knowledge of this codebase before running our profiler, and this allowed us to improve the throuhgput of the benchmark in about an hour after viewing the profile results.
+              </p>
+
+              <p>
+                  The results of the end to end runtime of the benchmark before and after optimization are displayed below.
+                  <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/TPCC_before_and_after.png" /></div>
+              </p>
+
+
+
               
 
           <h2>References</h2>
