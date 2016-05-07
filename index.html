@@ -255,16 +255,22 @@ rank   self  accum   count trace method
                   and we also identified an opportunity for optimization on the high performance, highly parallel 
                   <a href="https://github.com/ujmp/universal-java-matrix-package">Universal Java Matrix Package</a> by using blocking to take better advantage of the cache.
               </p>
-          <!--
+
               <p>
                   JCoz joins a community of existing Java profilers, including 
                   <a href="http://docs.oracle.com/javase/7/docs/technotes/samples/hprof.html">hprof</a>,
-                  <a href="http://jrat.sourceforge.net/">JRat</a>,
-                  <a href="https://www.yourkit.com/java/profiler/">YourKit</a>,
+                  <a href="http://docs.oracle.com/javase/6/docs/technotes/tools/share/jvisualvm.html">JVisualVM</a>,
                   and a <a href="https://github.com/dcapwell/lightweight-java-profiler">lightweight java profiler</a> by
                   Jeremy Manson and David Capwell.
               </p>
-              -->
+            
+              <p>
+                  Below is a comparison of the overhead of running different Java Profilers on the Dacapo H2 Benchmarking tool.
+                  <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/profiling_overhead.png" /></div>
+                  Since JCoz does not use the heavyweight insturmentation that is used by the JVisualVM profiling tool, it's overhead is similar to HPROF and JVisualVM profiling. 
+              </p>
+
+              
 
           <h2>References</h2>
               <p>
