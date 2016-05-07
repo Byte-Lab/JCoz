@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -42,7 +42,7 @@
     <h2>Summary</h2>
           <p>
               We implemented a causal Java profiler, and were able to use it to optimize the <a href="http://www.h2database.com/html/main.html">Java H2 Database</a>; a widely used, mature in-memory Java database engine.
-              Our profiler is also very lightweight, with roughly 10-30% runtime overhead (beating major profilers such as hprof, JRat, and YourKit).
+              Our profiler is also very lightweight, with roughly 10-30% runtime overhead (matching major sampling profilers such as HPROF and JVisualVM).
           </p>
 
     <h2>Background</h2>
@@ -59,13 +59,13 @@
               choose a line being executed among all threads (randomly), and a speedup amount
               between 0 - 100%, to measure how speeding up that line of code by the given speedup percent would affect overall program runtime.
               Ideally, during this experiment, when any thread enters the selected line, all other threads are suspended for a period of time depending
-              on the speedup chosen for that experiment. In reality, however, we have to utilize sampling to avoid the excessive overhead from having every
-              thread pause every time it hits the line. To actually measure line speedup, we measure the throughput achieved during the experiment, and use it
+              on the speedup chosen for that experiment. However, we instead utilize sampling to avoid the excessive runtime overhead from having every
+              thread pause every time it hits the line. To actually measure line speedup, we record the throughput achieved during the experiment and use it
               to determine how speeding up the line would affect throughput / runtime. Thus, by freezing the other threads and measuring how throughput changes, we have "virtually" sped
               the line being executed by the given thread.
           </p>
           <p>
-              The following caption is a useful visualization of virtual speedup (caption credited to Charlie Curtsinger and Emery Burger whose paper is cited in the references section): <br /> <br />
+              The following caption is a useful visualization of virtual speedup (caption credited to Charlie Curtsinger and Emery Berger whose paper is cited in the references section): <br /> <br />
               <img src="http://davidvernet.com/media/virtual_speedup_picture.png" />
           </p>
           <p>
@@ -106,7 +106,7 @@ public class Test {
 }
 </pre>
               </div>
-              For this program, an instrumentation profiler, hprof, gives us the following output:<br /><br />
+              For this program, HPROF's full instrumentation profiler gives us the following output:<br /><br />
               <div class="highlight">
                   <pre>
 CPU TIME (ms) BEGIN (total = 1486) Fri May  6 22:12:27 2016
@@ -122,9 +122,9 @@ rank   self  accum   count trace method
 </pre>
               </div>
 
-              As you can see, hprof tells us that we spend over 1/3 of our time in a join statement and in <tt>a()</tt>,
+              As you can see, HPROF tells us that we spend over 1/3 of our time in a join statement and in <tt>a()</tt>,
               and 1/4 of our time in <tt>b()</tt>. In reality, optimizing <tt>b()</tt> would have no affect whatsoever on program runtime,
-              and optimizing the join statement is meaningless. We see similar results when running hprof's sampling profiler:<br /><br />
+              and optimizing the join statement is meaningless. We see similar results when running HPROF's sampling profiler:<br /><br />
 
               <div class="highlight">
                   <pre>
@@ -144,7 +144,7 @@ rank   self  accum   count trace method
               </p>
 
               <p>
-              Now, observe the output of JCoz on the same exact program:
+              Now, observe the output of JCoz on the same program:
 
                 <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/25percent_speedup_profile.png" /></div>
                 <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/25percent_no_speedup_profile.png" /></div>
@@ -195,11 +195,12 @@ rank   self  accum   count trace method
               <p>
                   In building our tool, we leveraged the <a href="https://docs.oracle.com/javase/8/docs/platform/jvmti/jvmti.html">JVM Tool Interface (JVMTI)</a>
                   to get thread stack traces, listen for when new user threads are created and existing threads are killed, map byte code instructions to source file
-                  line numbers, and set breakpoints. Though much of the interface was relatively straightforward and easy to use, we ran into a serious hurdle midway 
-                  through in obtaining stack traces in real time from the program. JVMTI only publicly exposes a <tt>GetThreadStack</tt> function that returns stack
+                  line numbers, and set breakpoints. Though much of the interface was relatively straightforward and easy to use, we ran into a hurdle in obtaining stack 
+                  traces in real time from the program. JVMTI only publicly exposes a <tt>GetStackTrace</tt> function that returns stack
                   traces at "safe points". Had we been constrained to use this "safe" thread stack function, it would have severely degraded the utility of our 
                   profiler because it may have skipped important lines to profile, or caused us to wait for some indefinite amount of time before being given the
-                  stack trace (which would have caused our sampling logic to be completely unpredictable). To get around this issue, we used the undocumented
+                  stack trace (which would have caused our sampling logic to be completely unpredictable). For example, we observed that no safe points were
+                  being added in tight, expensive loops. To get around this issue, we used the undocumented
                   <tt>AsyncGetStackTrace</tt> function to get stack traces in non-safe points. It took quite a lot of scaffolding and patchy code to properly use
                   this function, and we ended up integrating our code with the <a href="https://github.com/dcapwell/lightweight-java-profiler">lightweight-java-profiler</a>
                   codebase, as they had previously added some complicated code to use the <tt>AsyncGetStackTrace</tt> function.
@@ -207,12 +208,12 @@ rank   self  accum   count trace method
               <p>
                   Another technique we used in our profiler was sampling. It would have required far too much overhead to listen to each instruction
                   for every thread to see if a thread was executing an experiment line. Instead, we send all threads a <tt>SIGPROF</tt> signal every 1 ms. In the signal
-                  handler, each thread determine if it is executing the experiment line by calling <tt>AsyncGetStackTrace</tt>, and if so, it notifies other threads that
-                  they need to sleep by incrementing a global variable. This provides a nice tuning knob for configuring the profiler, as we can easily adjust
-                  experiment times and sampling frequency to tune the runtime overhead and profiling granularity of JCoz.
+                  handler, each thread determines if it is executing the experiment line by calling <tt>AsyncGetStackTrace</tt>. If so, it notifies other threads to sleep 
+                  by incrementing a global sleep counter. This provides a nice tuning knob for configuring the profiler, as we can easily adjust
+                  experiment duration and sampling frequency to tune the runtime overhead and profiling granularity of JCoz.
               </p>
               <p>
-                  We ocassionally referenced the <a href="https://github.com/plasma-umass/coz">original COZ implementation</a> 
+                  We occassionally referenced the <a href="https://github.com/plasma-umass/coz">original COZ implementation</a> 
                   to gain insights into how they implemented certain techniques. In addition, as mentioned above, we integrated parts of our code with the
                   <a href="https://github.com/dcapwell/lightweight-java-profiler">lightweight-java-profiler</a> to take advantage of their approach to
                   using the undocumented JVMTI method <tt>AsyncGetCallTrace</tt>.
@@ -240,43 +241,50 @@ rank   self  accum   count trace method
                   Our first metric of success was our profiler's performance on simple Java programs that exhibited various paradigms of parallel programming. 
                   We were able to measure this by running our profiler on many different, easy to understand toy examples, 
                   and verifying that the profiler gave us the ouput we expected for all programs. We found that all examples were correctly profiled, though in some instances, many iterations of the program was required to build a large
-                  enough profile to have useful results.
-              </p>
+                  enough profile to have useful results. We ran our profiler on the following types of toy examples:
+                  <ol>
+                      <li>Two non-contending threads with different runtimes (shown above)</li>
+                      <li>Multiple non-contending threads with exactly the same runtimes (equal speedup opportunities in all threads)</li>
+                      <li>Two threads with the same runtimes where one is waiting on a lock (essentially serial execution -- equal speedup opportunities found)</li>
+                      <li>Multiple threads thrashing on a single lock (significant speedup found for the small section of code where a thread held the lock)</li>
+                  </ol>
 
-              <p>
-                  Another metric of success for our profiler was the amount of runtime overhead incurred from using it.
-                  We found that our profiler was very lightweight, incurring roughly 10-40% runtime overhead for all programs that we profiled.
-                  This was consistently faster than most profilers we compared against, including JRat, YourKit and hprof, but it was slower than the lightweight-java-profiler.
+                  We found that the profile outputs matched our expectations for all of the
+                  aforementioned examples. Going forward, we intend to manufacture more toy examples; including examples with threads that exhibit poor cache locality,
+                  threads that write to a global atomic variable, and threads that flood the interconnect with excessive traffic. We are confident that our
+                  profiler can at least correctly identify poor cache locality, as we were able to identify a bottleneck in the Universal Java Matrix Package (UJMP)
+                  that exhibited very poor cache locality when multiplying dense matrices (though we did not have time to implement an optimization).
               </p>
 
               <p>
                   Perhaps most importantly, we were able to optimize real libraries with our profiler. Specifically, we were able to optimize 
-                  the <a href="http://www.h2database.com/html/main.html">Java H2 Database</a> by 20% using the standard <a href="http://dacapobench.org/">Dacapo Benchmark suite</a>,
+                  the <a href="http://www.h2database.com/html/main.html">Java H2 Database</a> by 19% using the standard <a href="http://dacapobench.org/">Dacapo Benchmark suite</a>,
                   and we also identified an opportunity for optimization on the high performance, highly parallel 
                   <a href="https://github.com/ujmp/universal-java-matrix-package">Universal Java Matrix Package</a> by using blocking to take better advantage of the cache.
               </p>
 
               <p>
                   JCoz joins a community of existing Java profilers, including 
-                  <a href="http://docs.oracle.com/javase/7/docs/technotes/samples/hprof.html">hprof</a>,
+                  <a href="http://docs.oracle.com/javase/7/docs/technotes/samples/HPROF.html">HPROF</a>,
                   <a href="http://docs.oracle.com/javase/6/docs/technotes/tools/share/jvisualvm.html">JVisualVM</a>,
-                  and a <a href="https://github.com/dcapwell/lightweight-java-profiler">lightweight java profiler</a> by
-                  Jeremy Manson and David Capwell.
+                  and <a href="https://github.com/dcapwell/lightweight-java-profiler">lightweight java profiler</a>
               </p>
             
               <p>
+                  Another metric of success for our profiler was the amount of runtime overhead incurred from using it.
+                  We found that our profiler was very lightweight, incurring roughly 10-40% runtime overhead for all programs that we profiled.
                   Below is a comparison of the overhead of running different Java Profilers on the Dacapo H2 Benchmarking tool.
                   <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/profiling_overhead.png" /></div>
-                  Since JCoz does not use the heavyweight insturmentation that is used by the JVisualVM profiling tool, it's overhead is similar to HPROF and JVisualVM profiling. 
+                  Since JCoz does not use the heavyweight instrumentation that is used by the JVisualVM profiling tool, its overhead is similar to HPROF and JVisualVM profiling. 
               </p>
 
               <p>
-                  One of our main goals for this project was to take an application of which we had little knowledge, run our profiler, and make a meaningfull improvment with little development time. We chose to profile the H2 TPCC benchmark using the Dacapo Java Benchmarking Suite. Our profile displayed the a line as the best opportunity for throughput improvement with the following graph. We ran on muir, a machine with 264GB of DRAM and 4 Intel Intel Xeon E5-4650 2.70 GHz processors.
+                  One of our main goals for this project was to take an application of which we had little knowledge, run our profiler, and make a meaningful improvment with little development time. We chose to profile the H2 TPCC benchmark using the Dacapo Java Benchmarking Suite. Our profile displayed the line as the best opportunity for throughput improvement with the following graph. We ran on muir, a machine with 264GB of DRAM and 4 Intel Intel Xeon E5-4650 2.70 GHz processors.
                   <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/h2_optimized_line_profile_output.png" /></div>
               </p>
 
               <p>
-                  Using the above profile, we discovered that a <tt>Thread.Wait()</tt> call meant to implement backoff of a failed transaction before retrying was causing an significant drop in throuhput performance. By reducing the wait time from a random time between 1 and 10 ms to 1-10 microseconds. Changing only this line we observed a throuhgput increase of about 19%. We had no knowledge of this codebase before running our profiler, and this allowed us to improve the throuhgput of the benchmark in about an hour after viewing the profile results.
+                  Using the above profile, we discovered that a <tt>Thread.Wait()</tt> call meant to implement backoff of a failed transaction before retrying was causing an significant drop in throughput performance. By reducing the wait time from a random time between 1 and 10 ms to 1-10 microseconds. Changing only this line we observed a throughput increase of about 19%. We had no knowledge of this codebase before running our profiler, and this allowed us to improve the throughput of the benchmark in about an hour after viewing the profile results.
               </p>
 
               <p>
@@ -286,11 +294,7 @@ rank   self  accum   count trace method
 
               <p>
                   We feel this significant improvment with little development effort demonstrates the utility of this form of profiling. 
-              </p>
-
-
-
-              
+              </p>              
 
           <h2>References</h2>
               <p>
