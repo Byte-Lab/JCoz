@@ -71,90 +71,57 @@
           <p>
               The above approach to profiling multithreaded programs has many benefits over the traditional performance monitoring profilers.
               For example, observe the following toy program:
-              <div class="highlight">
-                  <pre>
-public class Test {
-    static class ThreadTest1 implements Runnable {
-        public void run() {
-            long sum = 0;
-            for( long i = 0; i < 1600000000L; i++ ) {
-                sum += 1;
-            }
-                  
-            System.out.println("Thread1 sum: " + sum);
-        }
-    }
-                  
-    static class ThreadTest2 implements Runnable {
-        public void run() {
-            long sum = 0;
-            for( long i = 0; i < 1200000000L; i++ ) {
-                sum += 1;
-            }
 
-            System.out.println("Thread2 sum: " + sum);
-        }
-    }
-                  
-    public static void main(String[] args) throws InterruptedException {
-        Thread longer = new Thread(new ThreadTest1());
-        Thread shorter = new Thread(new ThreadTest2());
-        longer.start();
-        shorter.start();
-        shorter.join(); longer.join();
-    }
-}
-</pre>
-              </div>
-              For this program, HPROF's full instrumentation profiler gives us the following output:<br /><br />
-              <div class="highlight">
-                  <pre>
-CPU TIME (ms) BEGIN (total = 1486) Fri May  6 22:12:27 2016
-rank   self  accum   count trace method
-1 35.40% 35.40%       2 302001 java.lang.Thread.join
-2 35.33% 70.73%       1 302000 test.Test$ThreadTest1.run
-3 25.64% 96.37%       1 301970 test.Test$ThreadTest2.run
-4  0.13% 96.50%       1 300163 java.lang.invoke.MethodHandle.&lt;clinit&gt;
-5  0.13% 96.64%      10 300845 sun.misc.URLClassPath$JarLoader.ensureOpen
-6  0.07% 96.70%       7 300014 java.lang.System.getSecurityManager
-7  0.07% 96.77%       1 300094 java.lang.invoke.MethodHandleImpl.&lt;clinit&gt;
-8 ..........
-</pre>
+              <div style="display:block;">
+                  <img src="http://davidvernet.com/media/toy_example_code_simple.png" />
               </div>
 
-              As you can see, HPROF tells us that we spend over 1/3 of our time in a join statement and in <tt>a()</tt>,
-              and 1/4 of our time in <tt>b()</tt>. In reality, optimizing <tt>b()</tt> would have no affect whatsoever on program runtime,
-              and optimizing the join statement is meaningless. We see similar results when running HPROF's sampling profiler:<br /><br />
+              For this program, JVisualVM's sampling instrumentation profiler gives us the following output:<br /><br />
 
-              <div class="highlight">
-                  <pre>
-CPU SAMPLES BEGIN (total = 78) Fri May  6 22:16:59 2016
-rank   self  accum   count trace method
-1 55.13% 55.13%      43 300062 test.Test$ThreadTest1.run
-2 42.31% 97.44%      33 300063 test.Test$ThreadTest2.run
-3  1.28% 98.72%       1 300035 java.util.Arrays.copyOf
-4  1.28% 100.00%       1 300061 java.lang.System.arraycopy
-</pre>
+              <div style="display: block; width: 1000px">
+                  <img src="http://davidvernet.com/media/test_simple_jvisualvm_sampling.png"  />
               </div>
 
-                  Though this profile provides a more accurate picture of where we're spending our time,
-                  it still does not indicate that optimizing <tt>b()</tt> does nothing for runtime and that
-                  after we speed up <tt>a()</tt> by 25% that the program runtime will top off when <tt>b()</tt>
-                  becomes the bottleneck.
-              </p>
+            Though this profile provides a more accurate picture of where we're spending our time,
+            it still does not indicate that optimizing <tt>ShortWorker</tt> does nothing for runtime and that
+            after we speed up <tt>LongWorker</tt> by 50% that the program runtime will top off when <tt>ShortWorker</tt>
+            becomes the bottleneck.
+        </p>
 
               <p>
               Now, observe the output of JCoz on the same program:
 
-                <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/25percent_speedup_profile.png" /></div>
-                <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/25percent_no_speedup_profile.png" /></div>
+                <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/simple_toy_longer.png" /></div>
+                <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/simple_toy_shorter.png" /></div>
 
                 Though there is some variance (as is expected with a Java program), our profile correctly indicates that speeding up
-                Thread 1 (the longer thread) linearly approaches a 25% speedup, and then at roughly a 25% line speedup, the overall runtime
-                speedup stays around 25% no matter how much faster we make the line (because thread 2 dominates runtime). Additionally,
-                we see that the profile indicates that optimizing Thread 2 does essentially nothing for performance.
-                We will demonstrate more results in the results section below.
+                the longer worker linearly approaches a 50% speedup, and then at roughly a 50% line speedup, the overall runtime
+                speedup stays around 50% no matter how much faster we make the line (because ShortWorker dominates runtime). Additionally,
+                we see that the profile indicates that optimizing ShortWorker does essentially nothing for performance.
               </p>
+
+         <p>
+             Here is another example of how JCoz provides more valuable profiling results than other profilers. Observe the following code:
+             <div style="display:block; margin-bottom: 10px;">
+                 <img src="http://davidvernet.com/media/toy_example_code.png" />
+             </div>
+
+             JVisualVM's sampling profiler again gives us misleading results:
+             
+             <div style="display: block; width: 1000px; margin-top:10px; margin-bottom: 10px;">
+                 <img src="http://davidvernet.com/media/jvisual_vm_screenshot.png" />
+             </div>
+
+             As you can see, this profile indicates that there is essentially no opportunity for speedup in the serial portion
+             of the code, while indicating that there is enormous (much more than 50%) speedup opportunity in the parallel
+             portion of the code. Clearly, each portion of the code has equal opportunity for optimization, as each portion
+             of that code comprises about 50% of the loop runtime. This result is given by JCoz when run on this toy example:
+
+             <div class="block" style="margin-bottom: 15px; margin-top: 15px;"><img src="http://davidvernet.com/media/new_toy_parallel_speedup.png" /></div>
+             <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/new_toy_serial_speedup.png" /></div>
+             
+             As mentioned above, JCoz correctly indicates that optimizing either portion of the code will result in approximately equal throughput improvement.
+         </p>
 
               <h2>Approach</h2>
 
@@ -293,54 +260,19 @@ rank   self  accum   count trace method
                   and this allowed us to improve the throughput of the benchmark in about an hour after viewing the profile results.
               </p>
               <p>
-                  Here is the line we identified for speedup:
-                  <div class="highlight">
-                      <pre>
-Database database = session.getDatabase();
-int sleep = 1 + MathUtils.randomInt(10);
-while (true) {
-    try {
-        if (database.isMultiThreaded()) {
-            Thread.sleep(sleep); // **This line was identified as a bottleneck**
-        } else {
-            database.wait(sleep);
-        }
-    } catch (InterruptedException e1) {
-        // ignore
-    }
-    long slept = System.nanoTime() / 1000000 - now;
-    if (slept >= sleep) {
-        break;
-    }
-}
-</pre>
+                  Here is the line we identified for speedup (it was the <tt>Thread.sleep(...)</tt> call):
+                
+                  <div style="display:block; margin-bottom: 10px;">
+                      <img src="http://davidvernet.com/media/h2_line_to_optimize.png" />
                   </div>
               </p>
           <p>
               To speed up the line of code, we simply lowered the amount of time to randomly sleep on a failed transaction:
-              <div class="highlight">
-                  <pre>
-Database database = session.getDatabase();
 
-// now sleeping between 1 - 10 microseconds rather than 1 - 10 milliseconds
-int sleep = 1000 * (1 + MathUtils.randomInt(10));
-while (true) {
-    try {
-        if (database.isMultiThreaded()) {
-            Thread.sleep(0, sleep);
-        } else {
-            database.wait(0, sleep);
-        }
-    } catch (InterruptedException e1) {
-        // ignore
-    }
-    long slept = System.nanoTime() - now;
-    if (slept >= sleep) {
-        break;
-    }
-}
-</pre>
+              <div style="display:block; margin-bottom: 10px;">
+                  <img src="http://davidvernet.com/media/h2_optimized_line_code.png" />
               </div>
+
           </p>
 
               <p>
