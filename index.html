@@ -234,7 +234,7 @@
                   JCoz joins a community of existing Java profilers, including 
                   <a href="http://docs.oracle.com/javase/7/docs/technotes/samples/HPROF.html">HPROF</a>,
                   <a href="http://docs.oracle.com/javase/6/docs/technotes/tools/share/jvisualvm.html">JVisualVM</a>,
-                  and <a href="https://github.com/dcapwell/lightweight-java-profiler">lightweight java profiler</a>
+                  and <a href="https://github.com/dcapwell/lightweight-java-profiler">lightweight java profiler</a>.
               </p>
             
               <p>
@@ -253,10 +253,10 @@
               </p>
 
               <p>
-                  Using the above profile, we discovered that a <tt>Thread.Wait()</tt> call meant to implement backoff of a failed 
+                  Using the above profile, we discovered that a <tt>Thread.sleep(...)</tt> call meant to implement backoff of a failed 
                   transaction before retrying was causing an significant drop in throughput performance. 
-                  By reducing the wait time from a random time between 1 and 10 ms to 1-10 microseconds. 
-                  Changing only this line we observed a throughput increase of about 19%. We had no knowledge of this codebase before running our profiler, 
+                  By reducing the wait time from a random time between 1 and 10 ms to 1-10 microseconds, we observed a throughput increase of about 19%.
+                  We had no knowledge of this codebase before running our profiler, 
                   and this allowed us to improve the throughput of the benchmark in about an hour after viewing the profile results.
               </p>
               <p>
