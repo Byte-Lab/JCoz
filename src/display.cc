@@ -13,21 +13,6 @@
 #include <map>
 #include <vector>
 
-void StackTracesPrinter::PrintStackTraces(TraceData *traces, int length) {
-  int count = 0;
-  int total = 0;
-  for (int i = 0; i < length; i++) {
-    if (traces[i].count != 0) {
-      total += traces[i].count;
-      count++;
-      fprintf(file_, "%" PRIdPTR " ", traces[i].count);
-      PrintStackTrace(&traces[i]);
-      fprintf(file_, "\n");
-    }
-  }
-  fprintf(file_, "Total trace count = %d, Total traces = %d\n", total, count);
-}
-
 typedef std::pair<jint, jmethodID> PairCallFrame;
 typedef std::pair<PairCallFrame, int> FrameCount;
 

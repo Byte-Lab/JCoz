@@ -71,6 +71,9 @@ run:
 java:
 	javac test/*.java
 
+jhome:
+	echo $(JAVA_HOME)
+
 clean:
 	rm -rf $(BUILD_DIR)/*
 

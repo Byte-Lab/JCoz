@@ -21,8 +21,6 @@ class StackTracesPrinter {
   StackTracesPrinter(FILE *file, jvmtiEnv *jvmti)
       : file_(file), jvmti_(jvmti) {}
 
-  void PrintStackTraces(TraceData *traces, int length);
-
   void PrintLeafHistogram(TraceData *traces, int length);
 
  private:
