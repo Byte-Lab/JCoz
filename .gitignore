@@ -1,5 +1,5 @@
 *.coz
-build-64/
+build*
 *.so
 *.class
 *.project
@@ -7,3 +7,4 @@ build-64/
 questions
 *.txt
 !src/CMakeLists.txt
+
