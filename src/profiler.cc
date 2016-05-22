@@ -11,7 +11,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <jvmti.h>
-#include <pthread.h>
+#include <thread>
 #include <algorithm>
 #include <iostream>
 #include <unistd.h>
@@ -41,7 +41,7 @@ thread_local struct UserThread *curr_ut;
 // Initialize static Profiler variables here
 std::unordered_set<void *> Profiler::in_scope_ids;
 volatile bool Profiler::in_experiment = false;
-volatile pthread_t Profiler::in_scope_lock = 0;
+volatile std::thread::id Profiler::in_scope_lock = 0;
 volatile int Profiler::frame_lock = 0;
 volatile int Profiler::user_threads_lock = 0;
 std::vector<JVMPI_CallFrame> Profiler::call_frames;
@@ -52,7 +52,7 @@ std::atomic<long> Profiler::global_delay(0);
 std::atomic_ulong Profiler::points_hit(0);
 volatile bool Profiler::_running = false;
 volatile bool Profiler::end_to_end = false;
-pthread_t Profiler::agent_pthread;
+std::thread Profiler::agent_pthread;
 volatile bool Profiler::profile_done = false;
 unsigned long Profiler::experiment_time = 5000;
 

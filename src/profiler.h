@@ -4,8 +4,9 @@
 #include <unordered_map>
 #include <vector>
 #include <atomic>
-#include <pthread.h>
+#include <thread>
 #include <fstream>
+#include <pthread.h>
 #include <iostream>
 
 #include "globals.h"
@@ -26,7 +27,7 @@ struct Experiment {
 };
 
 struct UserThread {
-    pthread_t thread;
+    std::thread thread;
     long local_delay = 0;
     unsigned long points_hit = 0;
     unsigned int num_signals_received = 0;
@@ -145,11 +146,11 @@ class Profiler {
 
   static volatile bool end_to_end;
 
-  static pthread_t agent_pthread;
+  static std::thread agent_pthread;
 
   static char *getClassFromMethodIDLocation(jmethodID method_id);
 
-  static volatile pthread_t in_scope_lock;
+  static volatile std::thread::id in_scope_lock;
 
   static volatile bool profile_done;
 
