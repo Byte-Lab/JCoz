@@ -6,8 +6,9 @@
 #include <atomic>
 #include <thread>
 #include <fstream>
-#include <pthread.h>
+#include <thread>
 #include <iostream>
+#include <csignal>
 
 #include "globals.h"
 #include "stacktraces.h"

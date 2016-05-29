@@ -164,7 +164,11 @@ void Profiler::signal_user_threads() {
 		;
 	std::atomic_thread_fence(std::memory_order_acquire);
 	for (auto i = user_threads.begin(); i != user_threads.end(); i++) {
+#ifdef WIN32
+#else
 		pthread_kill((*i)->thread, SIGPROF);
+#endif
+		
 	}
 	user_threads_lock = 0;
 	std::atomic_thread_fence(std::memory_order_release);
