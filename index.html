@@ -66,20 +66,20 @@
           </p>
           <p>
               The following caption is a useful visualization of virtual speedup (caption credited to Charlie Curtsinger and Emery Berger whose paper is cited in the references section): <br /> <br />
-              <img src="http://davidvernet.com/media/virtual_speedup_picture.png" />
+              <img src="images/figures/virtual_speedup_picture.png" />
           </p>
           <p>
               The above approach to profiling multithreaded programs has many benefits over the traditional performance monitoring profilers.
               For example, observe the following toy program:
 
               <div style="display:block;">
-                  <img src="http://davidvernet.com/media/toy_example_code_simple.png" />
+                  <img src="images/figures/toy_example_code_simple.png" />
               </div>
 
               For this program, JVisualVM's sampling instrumentation profiler gives us the following output:<br /><br />
 
               <div style="display: block; width: 1000px">
-                  <img src="http://davidvernet.com/media/test_simple_jvisualvm_sampling.png"  />
+                  <img src="images/figures/test_simple_jvisualvm_sampling.png"  />
               </div>
 
             Though this profile provides a more accurate picture of where we're spending our time,
@@ -91,8 +91,8 @@
               <p>
               Now, observe the output of JCoz on the same program:
 
-                <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/simple_toy_longer.png" /></div>
-                <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/simple_toy_shorter.png" /></div>
+                <div class="block" style="margin-bottom: 15px;"><img src="images/figures/simple_toy_longer.png" /></div>
+                <div class="block" style="margin-bottom: 15px;"><img src="images/figures/simple_toy_shorter.png" /></div>
 
                 Though there is some variance (as is expected with a Java program), our profile correctly indicates that speeding up
                 the longer worker linearly approaches a 50% speedup, and then at roughly a 50% line speedup, the overall runtime
@@ -103,13 +103,13 @@
          <p>
              Here is another example of how JCoz provides more valuable profiling results than other profilers. Observe the following code:
              <div style="display:block; margin-bottom: 10px;">
-                 <img src="http://davidvernet.com/media/toy_example_code.png" />
+                 <img src="images/figures/toy_example_code.png" />
              </div>
 
              JVisualVM's sampling profiler again gives us misleading results:
              
              <div style="display: block; width: 1000px; margin-top:10px; margin-bottom: 10px;">
-                 <img src="http://davidvernet.com/media/jvisual_vm_screenshot.png" />
+                 <img src="images/figures/jvisual_vm_screenshot.png" />
              </div>
 
              As you can see, this profile indicates that there is essentially no opportunity for speedup in the serial portion
@@ -117,8 +117,8 @@
              portion of the code. Clearly, each portion of the code has equal opportunity for optimization, as each portion
              of that code comprises about 50% of the loop runtime. This result is given by JCoz when run on this toy example:
 
-             <div class="block" style="margin-bottom: 15px; margin-top: 15px;"><img src="http://davidvernet.com/media/new_toy_parallel_speedup.png" /></div>
-             <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/new_toy_serial_speedup.png" /></div>
+             <div class="block" style="margin-bottom: 15px; margin-top: 15px;"><img src="images/figures/new_toy_parallel_speedup.png" /></div>
+             <div class="block" style="margin-bottom: 15px;"><img src="images/figures/new_toy_serial_speedup.png" /></div>
              
              As mentioned above, JCoz correctly indicates that optimizing either portion of the code will result in approximately equal throughput improvement.
          </p>
@@ -241,7 +241,7 @@
                   Another metric of success for our profiler was the amount of runtime overhead incurred from using it.
                   We found that our profiler was very lightweight, incurring roughly 10-40% runtime overhead for all programs that we profiled.
                   Below is a comparison of the overhead of running different Java Profilers on the Dacapo H2 Benchmarking tool.
-                  <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/profiling_overhead.png" /></div>
+                  <div class="block" style="margin-bottom: 15px;"><img src="images/figures/profiling_overhead.png" /></div>
                   Since JCoz does not use the heavyweight instrumentation that is used by the JVisualVM profiling tool, its overhead is similar to HPROF and JVisualVM profiling. 
               </p>
 
@@ -249,7 +249,7 @@
                   One of our main goals for this project was to take an application of which we had little knowledge, run our profiler, and make a meaningful improvment with little development time.
                   We chose to profile the H2 TPCC benchmark using the Dacapo Java Benchmarking Suite. Our profile displayed the line as the best opportunity for 
                   throughput improvement with the following graph. We ran on muir, a machine with 264GB of DRAM and 4 Intel Intel Xeon E5-4650 2.70 GHz processors.
-                  <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/h2_optimized_line_profile_output.png" /></div>
+                  <div class="block" style="margin-bottom: 15px;"><img src="images/figures/h2_optimized_line_profile_output.png" /></div>
               </p>
 
               <p>
@@ -263,21 +263,21 @@
                   Here is the line we identified for speedup (it was the <tt>Thread.sleep(...)</tt> call):
                 
                   <div style="display:block; margin-bottom: 10px;">
-                      <img src="http://davidvernet.com/media/h2_line_to_optimize.png" />
+                      <img src="images/figures/h2_line_to_optimize.png" />
                   </div>
               </p>
           <p>
               To speed up the line of code, we simply lowered the amount of time to randomly sleep on a failed transaction:
 
               <div style="display:block; margin-bottom: 10px;">
-                  <img src="http://davidvernet.com/media/h2_optimized_line_code.png" />
+                  <img src="images/figures/h2_optimized_line_code.png" />
               </div>
 
           </p>
 
               <p>
                   The results of the end to end runtime of the benchmark before and after optimization are displayed below.
-                  <div class="block" style="margin-bottom: 15px;"><img src="http://davidvernet.com/media/TPCC_before_and_after.png" /></div>
+                  <div class="block" style="margin-bottom: 15px;"><img src="images/figures/TPCC_before_and_after.png" /></div>
               </p>
 
               <p>
