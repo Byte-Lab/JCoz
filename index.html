@@ -32,20 +32,25 @@
 
     <h2>Summary</h2>
           <p>
-              We implemented a causal Java profiler, and were able to use it to optimize the <a href="http://www.h2database.com/html/main.html">Java H2 Database</a>; a widely used, mature in-memory Java database engine.
-              Our profiler is also very lightweight, with roughly 10-40% runtime overhead (matching major sampling profilers such as HPROF and JVisualVM).
+              JCoz is the first ever causal Java profiler. That is, it is a profiler for Java programs that uses a new technique called "causal profiling"
+              to identify performance bottlenecks in complex, parallel programs that run on the JVM.
+              This website describes in detail how causal profiling works, and shows some speedup results we were able to obtain
+              using JCoz. In particular, it shows our results in optimizing the <a href="http://www.h2database.com/html/main.html">Java H2 Database</a>;
+              a widely used, mature in-memory Java database engine. Finally, it shows that JCoz gets a 
+              runtime overhead of roughly 10-40% (matching major sampling profilers such as HPROF and JVisualVM).
           </p>
 
     <h2>Background</h2>
           <p>
-              Optimizing parallel programs is hard...very hard. As we've learned in this class, there are many moving parts to consider. For example, if threads are write sharing a global variable
-              it can cause excessive interconnect traffic and cache misses. Or perhaps Ahmdal's law prevents us from reaching our performance goal before we even get started. Even worse,
+              Optimizing parallel programs is very difficult, and there are often many moving parts to consider. For example, if threads are write sharing a global variable
+              it can cause excessive interconnect traffic and cache misses. Or perhaps Ahmdal's law prevents us from reaching our performance goal before we even get started, causing
+              days of optimization effort that will never improve the speed of your program. Even worse,
               it could happen that speeding up certain parts of your code might even cause a performance <i>hit</i> (for example, when speeding up a line of code causes increased
               lock contention). Is it possible to handle all of this complexity in a profiler, and provide accurate results so programmers know exactly where to look to optimize
               their parallel programs? It is -- with causal profiling.
           </p>
           <p>
-              For our project, we implemented a causal Java profiler; that is, a tool for profiling multithreaded Java programs. A causal profiler detects how changing a line would
+              JCoz is a causal Java profiler; that is, a tool for profiling multithreaded Java programs. A causal profiler detects how changing a line would
               affect performance using something called <i>virtual speedup</i>. At some frequency throughout the runtime of the program, we run an "experiment" in which we
               choose a line being executed among all threads (randomly), and a speedup amount
               between 0 - 100%, to measure how speeding up that line of code by the given speedup percent would affect overall program runtime.
@@ -272,22 +277,9 @@
               </p>
 
               <p>
-                  We feel this significant improvment with little development effort demonstrates the utility of this form of profiling. 
+                  We feel this significant improvment with little development effort demonstrates the utility of this form of profiling, and 
+                  we are exited to continue improving JCoz. 
               </p>              
-
-          <h2>References</h2>
-              <p>
-                  <ol>
-                      <li>C. Curtsinger, E. Berger. COZ: Finding Code that Counts with Causal Profiling. <i>SOSP '15 ACM SIGOPS</i></li>
-                      <li>J. Manson, D. Capwell. <a href="https://github.com/dcapwell/lightweight-java-profiler">Lightweight java profiler</a></li>
-                  </ol>
-              </p>
-
-          <h3>Work allocation</h3>
-            <p>
-                Equal work was done by both partners, with slightly more work being by David towards the end of the project because he had more time 
-                (Matt had a large database project and other finals).
-            </p>
       </section>
   </body>
 </html>
