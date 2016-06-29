@@ -18,7 +18,6 @@
 *.coz
 build-64/
 build/
-*.so
 *.class
 *.project
 *.swp
