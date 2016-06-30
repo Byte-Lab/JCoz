@@ -23,3 +23,10 @@ build/
 *.swp
 questions
 *.txt
+.classpath
+.project
+.cproject
+.settings
+jcoz-client/target
+jcoz-client/.settings
+

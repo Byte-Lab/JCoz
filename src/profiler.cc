@@ -126,9 +126,13 @@ inline long jcoz_sleep(long nanoseconds) {
 }
 
 void Profiler::ParseOptions(const char *options) {
+
     if( options == NULL ) {
+    	fprintf(stderr, "Missing options\n");
         print_usage();
         exit(1);
+    }else{
+    	printf("%s\n", options);
     }
     std::string options_str(options);
     std::stringstream ss(options_str);
@@ -157,6 +161,7 @@ void Profiler::ParseOptions(const char *options) {
         // else extract progress point
             size_t colon_index = value.find(':');
             if( colon_index == std::string::npos ) {
+            	fprintf(stderr, "Missing progress point\n");
                 print_usage();
                 exit(1);
             }
@@ -175,6 +180,7 @@ void Profiler::ParseOptions(const char *options) {
     }
 
     if( this->package.empty() || (!end_to_end && (progress_class.empty() || progress_point->lineno == -1)) ) {
+    	fprintf(stderr, "Missing package, progress class, or progress point\n");
         print_usage();
         exit(1);
     }

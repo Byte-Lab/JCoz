@@ -112,6 +112,38 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
    }
 }
 
+jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
+   printf("start profiling Native\n");
+   fflush(stdout);
+   return 0;
+}
+
+jint JNICALL endProfilingNative(JNIEnv *env, jobject thisObj) {
+   printf("end Profiling native\n");
+   fflush(stdout);
+   return 0;
+}
+
+jint JNICALL setProgressPointNative(JNIEnv *env, jobject thisObj, jstring className, jint lineNo) {
+  const char *nativeClassName = env->GetStringUTFChars(className, 0);
+  printf("set Progress point native %s:%d\n", nativeClassName, lineNo);
+  fflush(stdout);
+   // use your string
+  env->ReleaseStringUTFChars(className, nativeClassName);
+  return 0;
+}
+
+jint JNICALL setScopeNative(JNIEnv *env, jobject thisObj, jstring scope) {
+  const char *nativeScope = env->GetStringUTFChars(scope, 0);
+
+  printf("set scope %s\n", nativeScope);
+  fflush(stdout);
+  env->ReleaseStringUTFChars(scope, nativeScope);
+  return 0;
+}
+
+
+
 void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
   IMPLICITLY_USE(thread);
   IMPLICITLY_USE(jni_env);
@@ -130,6 +162,34 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
 
   jthread agent_thread = create_thread(jni_env);
   jvmtiError agentErr = jvmti->RunAgentThread(agent_thread, &Profiler::runAgentThread, NULL, 1);
+
+  // register mbean
+
+  jclass cls = jni_env->FindClass("com/vernetperronllc/jcoz/agent/JCozProfiler");
+  if (cls == nullptr){
+    fprintf(stderr, "Could not find JCoz Profiler class, did you add the jar to the classpath?\n");
+    return;
+  }
+  jmethodID mid = jni_env->GetStaticMethodID(cls, "registerProfilerWithMBeanServer", "()V");
+  if (mid == nullptr){
+    fprintf(stderr, "Could not find static method to register the mbean.\n");
+    return;
+  }
+
+  JNINativeMethod methods[] = {
+       {(char *)"startProfilingNative",   (char *)"()I",                     (void *)&startProfilingNative},
+       {(char *)"endProfilingNative",     (char *)"()I",                     (void *)&endProfilingNative},
+       {(char *)"setProgressPointNative", (char *)"(Ljava/lang/String;I)I",  (void *)&setProgressPointNative},
+       {(char *)"setScopeNative",         (char *)"(Ljava/lang/String;)I",   (void *)&setScopeNative},
+   };
+
+  jint err;
+  err = jni_env->RegisterNatives(cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
+  if (err != JVMTI_ERROR_NONE){
+    fprintf(stderr, "Could not register natives with error %d\n", err);
+    return;
+  }
+  jni_env->CallStaticVoidMethod(cls, mid);
 }
 
 void JNICALL OnClassPrepare(jvmtiEnv *jvmti_env, JNIEnv *jni_env,
@@ -168,6 +228,7 @@ static bool PrepareJvmti(jvmtiEnv *jvmti) {
   caps.can_generate_breakpoint_events = 1;
 
   jvmtiCapabilities all_caps;
+  memset(&all_caps, 0, sizeof(all_caps));
   int error;
 
   if (JVMTI_ERROR_NONE ==
