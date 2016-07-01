@@ -103,7 +103,9 @@ class Profiler {
 
   static void removeUserThread(jthread thread);
 
-  static void setJVMTI(jvmtiEnv *jvmti);
+  void setJVMTI(jvmtiEnv *jvmti);
+
+  jvmtiEnv * getJVMTI();
 
   static void addInScopeMethods(jint method_count, jmethodID *methods);
 
@@ -120,6 +122,16 @@ class Profiler {
           jmethodID method_id,
           jlocation location
   );
+
+  void setScope(std::string package);
+
+  void setProgressPoint(std::string class_name, jint line_no);
+
+  static void clearInScopeMethods();
+
+  static bool isRunning();
+
+  void init();
 
  private:
   jvmtiEnv *jvmti_;

@@ -186,6 +186,30 @@ void Profiler::ParseOptions(const char *options) {
     }
 }
 
+void Profiler::init(){
+	progress_point = new ProgressPoint();
+	progress_point->lineno = -1;
+	progress_point->method_id = nullptr;
+}
+
+
+jvmtiEnv * Profiler::getJVMTI(){
+	return jvmti_;
+}
+
+void Profiler::setScope(std::string package){
+	this->package = package;
+}
+
+bool Profiler::isRunning(){
+	return _running;
+}
+
+void Profiler::setProgressPoint(std::string class_name, jint line_no){
+	this->progress_class = class_name;
+	this->progress_point->lineno = line_no;
+}
+
 void Profiler::signal_user_threads() {
 	while (!__sync_bool_compare_and_swap(&user_threads_lock, 0, 1))
 		;
@@ -484,6 +508,12 @@ void Profiler::addInScopeMethods(jint method_count, jmethodID *methods) {
 	std::atomic_thread_fence(std::memory_order_release);
 }
 
+void Profiler::clearInScopeMethods(){
+	while (!__sync_bool_compare_and_swap(&in_scope_lock, 0, pthread_self()));
+	in_scope_ids.clear();
+	in_scope_lock = 0;
+}
+
 void Profiler::addProgressPoint(jint method_count, jmethodID *methods) {
 
     // Only ever set progress point once
@@ -633,6 +663,7 @@ void Profiler::Start() {
 
 // old_action_ is stored, but never used.  This is in case of future
 // refactorings that need it.
+
 	old_action_ = handler_.SetAction(&Profiler::Handle);
 	std::srand(unsigned(std::time(0)));
 	call_frames.reserve(2000);
@@ -721,6 +752,8 @@ void Profiler::Stop() {
 		;
 
     prof_output.flush();
+    prof_output.close();
+    clearInScopeMethods();
 	signal(SIGPROF, SIG_IGN);
 }
 

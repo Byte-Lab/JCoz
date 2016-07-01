@@ -83,6 +83,9 @@ jthread create_thread(JNIEnv *jni_env) {
 // Calls GetClassMethods on a given class to force the creation of
 // jmethodIDs of it.
 void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
+  if (!prof->isRunning()){
+	return;
+  }
   jint method_count;
   JvmtiScopedPtr<jmethodID> methods(jvmti);
   jvmtiError e = jvmti->GetClassMethods(klass, &method_count, methods.GetRef());
@@ -115,19 +118,41 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
 jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
    printf("start profiling Native\n");
    fflush(stdout);
+   // Forces the creation of jmethodIDs of the classes that had already
+   // been loaded (eg java.lang.Object, java.lang.ClassLoader) and
+   // OnClassPrepare() misses.
+   jvmtiEnv * jvmti = prof->getJVMTI();
+   jint class_count;
+   JvmtiScopedPtr<jclass> classes(jvmti);
+   prof->Start();
+   jvmti->GetLoadedClasses(&class_count, classes.GetRef());
+   jclass *classList = classes.Get();
+   for (int i = 0; i < class_count; ++i) {
+      jclass klass = classList[i];
+      CreateJMethodIDsForClass(jvmti, klass);
+   }
+
+
+   jthread agent_thread = create_thread(env);
+   jvmtiError agentErr = jvmti->RunAgentThread(agent_thread, &Profiler::runAgentThread, NULL, 1);
    return 0;
 }
 
 jint JNICALL endProfilingNative(JNIEnv *env, jobject thisObj) {
    printf("end Profiling native\n");
    fflush(stdout);
+   prof->Stop();
+   prof->clearProgressPoint();
    return 0;
 }
 
-jint JNICALL setProgressPointNative(JNIEnv *env, jobject thisObj, jstring className, jint lineNo) {
+jint JNICALL setProgressPointNative(JNIEnv *env, jobject thisObj, jstring className, jint line_no) {
   const char *nativeClassName = env->GetStringUTFChars(className, 0);
-  printf("set Progress point native %s:%d\n", nativeClassName, lineNo);
+  printf("set Progress point native %s:%d\n", nativeClassName, line_no);
   fflush(stdout);
+  prof->setProgressPoint(nativeClassName, line_no);
+
+
    // use your string
   env->ReleaseStringUTFChars(className, nativeClassName);
   return 0;
@@ -136,7 +161,9 @@ jint JNICALL setProgressPointNative(JNIEnv *env, jobject thisObj, jstring classN
 jint JNICALL setScopeNative(JNIEnv *env, jobject thisObj, jstring scope) {
   const char *nativeScope = env->GetStringUTFChars(scope, 0);
 
+  prof->setScope(nativeScope);
   printf("set scope %s\n", nativeScope);
+
   fflush(stdout);
   env->ReleaseStringUTFChars(scope, nativeScope);
   return 0;
@@ -147,21 +174,7 @@ jint JNICALL setScopeNative(JNIEnv *env, jobject thisObj, jstring scope) {
 void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
   IMPLICITLY_USE(thread);
   IMPLICITLY_USE(jni_env);
-  // Forces the creation of jmethodIDs of the classes that had already
-  // been loaded (eg java.lang.Object, java.lang.ClassLoader) and
-  // OnClassPrepare() misses.
-  jint class_count;
-  JvmtiScopedPtr<jclass> classes(jvmti);
-  JVMTI_ERROR((jvmti->GetLoadedClasses(&class_count, classes.GetRef())));
-  jclass *classList = classes.Get();
-  for (int i = 0; i < class_count; ++i) {
-    jclass klass = classList[i];
-    CreateJMethodIDsForClass(jvmti, klass);
-  }
-  prof->Start();
 
-  jthread agent_thread = create_thread(jni_env);
-  jvmtiError agentErr = jvmti->RunAgentThread(agent_thread, &Profiler::runAgentThread, NULL, 1);
 
   // register mbean
 
@@ -211,6 +224,7 @@ void JNICALL OnVMDeath(jvmtiEnv *jvmti_env, JNIEnv *jni_env) {
 
   // prof->clearProgressPoint();
   prof->Stop();
+
 }
 
 static bool PrepareJvmti(jvmtiEnv *jvmti) {
@@ -331,10 +345,10 @@ AGENTEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options,
     return 1;
   }
 
-  prof->setJVMTI(jvmti);
 
-  // Read the command line options and set progress points and package
-  prof->ParseOptions(options);
+
+//  // Read the command line options and set progress points and package
+//  prof->ParseOptions(options);
 
   if (!PrepareJvmti(jvmti)) {
     fprintf(stderr, "Failed to initialize JVMTI.  Continuing...\n");
@@ -352,6 +366,9 @@ AGENTEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options,
   Asgct::SetAsgct(Accessors::GetJvmFunction<ASGCTType>("AsyncGetCallTrace"));
 
   prof = new Profiler(jvmti);
+
+  prof->setJVMTI(jvmti);
+  prof->init();
 
   return 0;
 }
