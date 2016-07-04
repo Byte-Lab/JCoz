@@ -69,6 +69,11 @@ GLOBAL_COPTS=-fdiagnostics-show-option -fno-exceptions \
 COPTS:=$(PLATFORM_COPTS) $(GLOBAL_COPTS) $(PLATFORM_WARNINGS) \
 	$(GLOBAL_WARNINGS) $(OPT)
 
+PROFILER_JAR := $(shell \
+	[[ -d jcoz-client ]] && \
+	[[ -d jcoz-client/target ]] && \
+	ls jcoz-client/target/*.jar)
+
 INCLUDES=-I$(JAVA_HOME)/$(HEADERS) -I$(JAVA_HOME)/$(HEADERS)/$(UNAME) 
 
 
@@ -90,11 +95,15 @@ all: $(AGENT)
 run:
 	java -agentpath:./build-64/liblagent.so test.Test
 
+client:
+	mvn -f jcoz-client/pom.xml install
+
 java:
-	javac test/*.java
+	javac test/*.java -cp ${PROFILER_JAR}
 
 clean:
 	rm -rf $(BUILD_DIR)/*
+	rm -rf test/*.class
 
 kill:
 	pkill -9 java
