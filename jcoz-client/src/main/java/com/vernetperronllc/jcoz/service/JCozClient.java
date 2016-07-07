@@ -1,5 +1,7 @@
 package com.vernetperronllc.jcoz.service;
 
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -13,6 +15,7 @@ import javax.management.remote.JMXServiceURL;
 import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
 import com.vernetperronllc.jcoz.agent.JCozProfiler;
+import com.vernetperronllc.jcoz.Experiment;
 import com.vernetperronllc.jcoz.agent.JCozProfilerMBean;
 
 public class JCozClient {
@@ -44,7 +47,16 @@ public class JCozClient {
 	        mxbeanProxy.setProgressPoint("test/TestThreadSerial", 38);
 	        mxbeanProxy.setScope("test");
 	        mxbeanProxy.startProfiling();
-	        Thread.sleep(100000);
+	        for(int i = 0; i < 30; i++){
+	        	
+	        	ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(mxbeanProxy.getProfilerOutput()));
+	        	int numExperiments = ois.readInt();
+	        	for (int j = 0; j < numExperiments; j++){
+	        		System.out.println(Experiment.deserialize(ois));
+	        	}
+	        	
+	        	Thread.sleep(1000);
+	        }
 	        mxbeanProxy.endProfiling();
 	    }  finally {
 	    	connector.close();

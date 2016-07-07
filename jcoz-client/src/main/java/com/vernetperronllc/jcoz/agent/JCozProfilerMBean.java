@@ -1,5 +1,7 @@
 package com.vernetperronllc.jcoz.agent;
 
+import java.io.IOException;
+
 public interface JCozProfilerMBean {
 	
 	public int startProfiling();
@@ -10,7 +12,7 @@ public interface JCozProfilerMBean {
 	
 	public int setScope(String scope);
 	
-	public String getProfilerOutput();
+	public byte[] getProfilerOutput() throws IOException;
 	
 	public String getCurrentScope();
 	

@@ -1,8 +1,11 @@
 package com.vernetperronllc.jcoz.agent;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.lang.management.ManagementFactory;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
@@ -11,14 +14,19 @@ import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
-public class JCozProfiler implements JCozProfilerMBean {
+import com.vernetperronllc.jcoz.Experiment;
 
+public class JCozProfiler implements JCozProfilerMBean {
+	
+	//TODO organize this better and add proper error conditions and return values
+	// for example, cannot start an experiment without progress point, scope set
+	// 
 	private String progressPointClass_ = null;
 	private int progressPointLineNo = 0;
 	private String currentScope = null;
 	private static boolean registered = false;
 	
-	private StringBuilder cachedOutput = new StringBuilder();
+	private List<Experiment> cachedOutput = new ArrayList<>();
 
 	public synchronized int startProfiling(){
 		return startProfilingNative();
@@ -38,16 +46,26 @@ public class JCozProfiler implements JCozProfilerMBean {
 	
 	public native int setProgressPointNative(String className, int lineNo);
 
-	public synchronized String getProfilerOutput() {
-		return cachedOutput.toString();
+	public synchronized byte[] getProfilerOutput() throws IOException {
+		System.out.println("get Profiler output, numExperiments "+cachedOutput.size());
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ObjectOutputStream oos = new ObjectOutputStream(baos);
+		oos.writeInt(cachedOutput.size());
+		for (Experiment e : cachedOutput){
+			e.serialize(oos);
+		}
+		System.out.println();
+		clearCachedOutput();
+		oos.flush();
+		return baos.toByteArray();
 	}
 	
 	private synchronized void clearCachedOutput(){
-		cachedOutput = new StringBuilder();
+		cachedOutput.clear();
 	}
 	
-	private synchronized void cacheOutput(String output){
-		cachedOutput.append(output);
+	private synchronized void cacheOutput(String classSig, int lineNo, float speedup, long duration, long pointsHit){
+		cachedOutput.add(new Experiment(classSig, lineNo, speedup, duration, pointsHit));
 	}
 	
 	public synchronized String getCurrentScope(){

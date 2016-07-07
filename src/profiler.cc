@@ -76,6 +76,9 @@ volatile bool Profiler::end_to_end = false;
 pthread_t Profiler::agent_pthread;
 volatile bool Profiler::profile_done = false;
 unsigned long Profiler::experiment_time = 5000;
+jobject Profiler::mbean;
+jmethodID Profiler::mbean_cache_method_id;
+JNIEnv * Profiler::jni_;
 
 // How long should we wait before starting an experiment
 unsigned long Profiler::warmup_time = 5000000;
@@ -86,8 +89,6 @@ std::string Profiler::package;
 struct ProgressPoint* Profiler::progress_point = nullptr;
 std::string Profiler::progress_class;
 
-// output stream
-std::ofstream Profiler::prof_output;
 
 static std::atomic<int> call_index(0);
 static JVMPI_CallFrame static_call_frames[200];
@@ -252,7 +253,7 @@ float Profiler::calculate_random_speedup() {
 	}
 }
 
-void Profiler::runExperiment() {
+void Profiler::runExperiment(JNIEnv * jni_env) {
 	in_experiment = true;
 	points_hit = 0;
 
@@ -288,12 +289,11 @@ void Profiler::runExperiment() {
     if( sig == NULL ) return;
     cleanSignature(sig);
 
-    // Write output to file output
-    prof_output << "experiment\tselected=" << sig << ":" << current_experiment.lineno
-            << "\tspeedup=" << current_experiment.speedup << "\tduration="
-            << (current_experiment.duration - current_experiment.delay) << std::endl;
-    prof_output << "progress-point\tname=end-to-end\ttype=source\tdelta="
-            << current_experiment.points_hit << std::endl;
+    jstring javaSig = jni_env->NewStringUTF(sig);
+    jni_env->CallVoidMethod(Profiler::mbean, Profiler::mbean_cache_method_id, javaSig, current_experiment.lineno,
+    		+current_experiment.speedup, (current_experiment.duration - current_experiment.delay),
+			current_experiment.points_hit);
+    jni_env->DeleteLocalRef(javaSig);
 
     // printf("Total experiment delay: %ld, total duration: %ld\n", current_experiment.delay, current_experiment.duration);
     if( slow_exp && (current_experiment.points_hit <= 5) ) {
@@ -307,7 +307,7 @@ void Profiler::runExperiment() {
 }
 
 void JNICALL
-Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jnv_env, void *args) {
+Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
 	srand(time(NULL));
 	global_delay = 0;
     startup_time = std::chrono::high_resolution_clock::now().time_since_epoch();
@@ -392,7 +392,7 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jnv_env, void *args) {
 			frame_lock = 0;
 			std::atomic_thread_fence(std::memory_order_release);
 
-			runExperiment();
+			runExperiment(jni_env);
 			while (!__sync_bool_compare_and_swap(&frame_lock, 0, 1))
 				;
 			std::atomic_thread_fence(std::memory_order_acquire);
@@ -545,6 +545,40 @@ void Profiler::addProgressPoint(jint method_count, jmethodID *methods) {
 	}
 }
 
+void Profiler::setMBeanObject(jobject mbean){
+	if (jni_ == nullptr){
+		fprintf(stderr, "jni_ not set\n");
+		fflush(stderr);
+	}
+	Profiler::mbean = jni_->NewGlobalRef(mbean);
+	if (Profiler::mbean == nullptr){
+		fprintf(stderr, "error setting global ref\n");
+		fflush(stderr);
+	}
+	jclass mbeanClass = jni_->GetObjectClass(Profiler::mbean);
+	if (mbeanClass == nullptr){
+		fprintf(stderr, "could not get mbean class\n");
+		fflush(stderr);
+	}
+	mbean_cache_method_id = jni_->GetMethodID(mbeanClass, "cacheOutput", "(Ljava/lang/String;IFJJ)V");
+	if (Profiler::mbean_cache_method_id == nullptr){
+			fprintf(stderr, "could not get method id\n");
+			fflush(stderr);
+		}
+}
+
+jobject Profiler::getMBeanObject(){
+	return Profiler::mbean;
+}
+
+void Profiler::clearMBeanObject(){
+	jni_->DeleteGlobalRef(Profiler::mbean);
+}
+
+void Profiler::setJNI(JNIEnv* jni){
+	jni_ = jni;
+}
+
 void Profiler::Handle(int signum, siginfo_t *info, void *context) {
     if( !prof_ready ) {
         return;
@@ -667,8 +701,6 @@ void Profiler::Start() {
 	old_action_ = handler_.SetAction(&Profiler::Handle);
 	std::srand(unsigned(std::time(0)));
 	call_frames.reserve(2000);
-
-    prof_output.open("profile.coz", std::ios::out | std::ios::app);
 	_running = true;
 }
 
@@ -751,8 +783,6 @@ void Profiler::Stop() {
 	while (!profile_done)
 		;
 
-    prof_output.flush();
-    prof_output.close();
     clearInScopeMethods();
 	signal(SIGPROF, SIG_IGN);
 }

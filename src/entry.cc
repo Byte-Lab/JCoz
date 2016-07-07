@@ -124,6 +124,8 @@ jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
    jvmtiEnv * jvmti = prof->getJVMTI();
    jint class_count;
    JvmtiScopedPtr<jclass> classes(jvmti);
+   prof->setJNI(env);
+   prof->setMBeanObject(thisObj);
    prof->Start();
    jvmti->GetLoadedClasses(&class_count, classes.GetRef());
    jclass *classList = classes.Get();
@@ -142,6 +144,7 @@ jint JNICALL endProfilingNative(JNIEnv *env, jobject thisObj) {
    printf("end Profiling native\n");
    fflush(stdout);
    prof->Stop();
+   prof->clearMBeanObject();
    prof->clearProgressPoint();
    return 0;
 }
