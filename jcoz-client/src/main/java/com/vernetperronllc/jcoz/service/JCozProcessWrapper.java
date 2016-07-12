@@ -47,14 +47,15 @@ public class JCozProcessWrapper {
 	
 	private JCozProfilerMBean mbeanProxy;
 	
+	private static final String CONNECTOR_ADDRESS_PROPERTY_KEY = "com.sun.management.jmxremote.localConnectorAddress";
+	
 	public JCozProcessWrapper(VirtualMachineDescriptor descriptor) throws VirtualMachineConnectionException{
 		try{
 		vm = VirtualMachine.attach(descriptor);
 		vm.startLocalManagementAgent();
 		Properties props = vm.getAgentProperties();
 		String connectorAddress =
-		        props.getProperty("com.sun.management.jmxremote.localConnectorAddress");
-	    System.out.println(connectorAddress);
+		        props.getProperty(CONNECTOR_ADDRESS_PROPERTY_KEY);
 	    JMXServiceURL url = new JMXServiceURL(connectorAddress);
 	    JMXConnector connector = JMXConnectorFactory.connect(url);
         MBeanServerConnection mbeanConn = connector.getMBeanServerConnection();
@@ -95,13 +96,24 @@ public class JCozProcessWrapper {
 		}
 	}
 	
-	public List<Experiment> getProfilerOutput() throws IOException{
+	public List<Experiment> getProfilerOutput() throws JCozException{
 		List<Experiment> experiments = new ArrayList<>();
-		ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(mbeanProxy.getProfilerOutput()));
-    	int numExperiments = ois.readInt();
-    	for (int j = 0; j < numExperiments; j++){
-    		experiments.add(Experiment.deserialize(ois));
-    	}
+		ObjectInputStream ois;
+		
+		try {
+			byte[] profOutput = mbeanProxy.getProfilerOutput();
+			if (profOutput == null){
+				throw new InvalidWhenProfilerNotRunningException();
+			}
+			ois = new ObjectInputStream(new ByteArrayInputStream(profOutput));
+			int numExperiments = ois.readInt();
+	    	for (int j = 0; j < numExperiments; j++){
+	    		experiments.add(Experiment.deserialize(ois));
+	    	}
+		} catch (IOException e) {
+			throw new JCozException(e);
+		}
+    	
     	return experiments;
 	}
 	

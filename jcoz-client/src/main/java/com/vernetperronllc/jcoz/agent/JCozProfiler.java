@@ -93,6 +93,7 @@ public class JCozProfiler implements JCozProfilerMBean {
 		if (currentScope_ == null) {
 			return NO_SCOPE_SET;
 		}
+		experimentRunning_ = true;
 		return startProfilingNative();
 	}
 
@@ -107,6 +108,7 @@ public class JCozProfiler implements JCozProfilerMBean {
 		}
 		int returnCode = endProfilingNative();
 		experimentRunning_ = false;
+		cachedOutput = new ArrayList<>();
 		return returnCode;
 	}
 
@@ -119,7 +121,15 @@ public class JCozProfiler implements JCozProfilerMBean {
 		if (experimentRunning_) {
 			return CANNOT_CALL_WHEN_RUNNING;
 		}
-		return setProgressPointNative(className, lineNo);
+		//replace class name . with /
+		String passedClassName = className.replace('.', '/');
+		int returnCode =  setProgressPointNative(passedClassName, lineNo);
+		if (returnCode == NORMAL_RETURN){
+			this.progressPointClass_ = className;
+			this.progressPointLineNo_ = lineNo;
+		}
+		return returnCode;
+		
 	}
 
 	private native int setProgressPointNative(String className, int lineNo);
