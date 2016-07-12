@@ -19,23 +19,29 @@
  * a copy of the license that was included with that original work.
  */
 
-package com.vernetperronllc.jcoz.agent;
+package com.vernetperronllc.jcoz.service;
 
-import java.io.IOException;
+public class VirtualMachineConnectionException extends Exception{
+	
+	/**
+	 * serialVersionUID
+	 */
+	private static final long serialVersionUID = -5647339266057359107L;
+	
+	public VirtualMachineConnectionException(){
+		super();
+	}
 
-public interface JCozProfilerMBean {
+	public VirtualMachineConnectionException(String message) {
+		super(message);
+	}
 	
-	public int startProfiling();
+	public VirtualMachineConnectionException(Throwable cause){
+		super(cause);
+	}
 	
-	public int endProfiling();
-	
-	public int setProgressPoint(String className, int lineNo);
-	
-	public int setScope(String scope);
-	
-	public byte[] getProfilerOutput() throws IOException;
-	
-	public String getCurrentScope();
-	
-	public String getProgressPoint();
+	public VirtualMachineConnectionException(String message, Throwable cause){
+		super(message, cause);
+	}
+
 }

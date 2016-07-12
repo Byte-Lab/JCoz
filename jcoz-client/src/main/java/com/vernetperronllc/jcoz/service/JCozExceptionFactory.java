@@ -18,24 +18,42 @@
  * (https://github.com/dcapwell/lightweight-java-profiler). See APACHE_LICENSE for
  * a copy of the license that was included with that original work.
  */
+package com.vernetperronllc.jcoz.service;
 
-package com.vernetperronllc.jcoz.agent;
+import com.vernetperronllc.jcoz.agent.JCozProfiler;
 
-import java.io.IOException;
+/**
+ * generates exceptions based on return codes
+ * @author matt
+ *
+ */
+public class JCozExceptionFactory {
+	
+	
 
-public interface JCozProfilerMBean {
+	private JCozExceptionFactory(){
+		
+	}
 	
-	public int startProfiling();
+	public static final JCozExceptionFactory instance = new JCozExceptionFactory();
 	
-	public int endProfiling();
+	public static JCozExceptionFactory getInstance(){
+		return instance;
+	}
 	
-	public int setProgressPoint(String className, int lineNo);
+	public JCozException getJCozExceptionFromErrorCode(int errorCode){
+		switch(errorCode){
+		case JCozProfiler.NO_PROGRESS_POINT_SET:
+			return new NoProgressPointSetException();
+		case JCozProfiler.NO_SCOPE_SET:
+			return new NoScopeSetException();
+		case JCozProfiler.CANNOT_CALL_WHEN_RUNNING:
+			return new InvalidWhenProfilerRunningException();
+		case JCozProfiler.PROFILER_NOT_RUNNING:
+			return new InvalidWhenProfilerNotRunningException();
+		default:
+			return new JCozException("Unknown Exception occurred");
+		}
+	}
 	
-	public int setScope(String scope);
-	
-	public byte[] getProfilerOutput() throws IOException;
-	
-	public String getCurrentScope();
-	
-	public String getProgressPoint();
 }

@@ -1,3 +1,24 @@
+/*
+ * NOTICE
+ *
+ * Copyright (c) 2016 David C Vernet and Matthew J Perron. All rights reserved.
+ *
+ * Unless otherwise noted, all of the material in this file is Copyright (c) 2016
+ * by David C Vernet and Matthew J Perron. All rights reserved. No part of this file
+ * may be reproduced, published, distributed, displayed, performed, copied,
+ * stored, modified, transmitted or otherwise used or viewed by anyone other
+ * than the authors (David C Vernet and Matthew J Perron),
+ * for either public or private use.
+ *
+ * No part of this file may be modified, changed, exploited, or in any way
+ * used for derivative works or offered for sale without the express
+ * written permission of the authors.
+ *
+ * This file has been modified from lightweight-java-profiler
+ * (https://github.com/dcapwell/lightweight-java-profiler). See APACHE_LICENSE for
+ * a copy of the license that was included with that original work.
+ */
+
 package com.vernetperronllc.jcoz.agent;
 
 import java.io.ByteArrayOutputStream;
@@ -16,42 +37,106 @@ import javax.management.ObjectName;
 
 import com.vernetperronllc.jcoz.Experiment;
 
+/**
+ * Implementation of the mbean, controls the underlying native profiler
+ * 
+ * @author matt
+ *
+ */
 public class JCozProfiler implements JCozProfilerMBean {
-	
-	//TODO organize this better and add proper error conditions and return values
-	// for example, cannot start an experiment without progress point, scope set
-	// 
+
+	/**
+	 * is the mbean registered with the platform mbean server
+	 */
+	private static boolean registered_ = false;
+	/**
+	 * class of progress point
+	 */
 	private String progressPointClass_ = null;
-	private int progressPointLineNo = 0;
-	private String currentScope = null;
-	private static boolean registered = false;
-	
+	/**
+	 * line number of progress point
+	 */
+	private Integer progressPointLineNo_ = null;
+	/**
+	 * scope to profile
+	 */
+	private String currentScope_ = null;
+	/**
+	 * is an experiment running
+	 */
+	private boolean experimentRunning_ = false;
+
+	/*
+	 * error return codes
+	 */
+	public static final int NORMAL_RETURN = 0;
+	public static final int NO_PROGRESS_POINT_SET = 1;
+	public static final int NO_SCOPE_SET = 2;
+	public static final int CANNOT_CALL_WHEN_RUNNING = 3;
+	public static final int PROFILER_NOT_RUNNING = 4;
+
+	/**
+	 * list of experiments run since last collected
+	 */
 	private List<Experiment> cachedOutput = new ArrayList<>();
 
-	public synchronized int startProfiling(){
+	/**
+	 * start profiling with the current scope and progress point
+	 */
+	public synchronized int startProfiling() {
+		if (experimentRunning_) {
+			return CANNOT_CALL_WHEN_RUNNING;
+		}
+		if (progressPointClass_ == null || progressPointLineNo_ == null) {
+			return NO_PROGRESS_POINT_SET;
+		}
+		if (currentScope_ == null) {
+			return NO_SCOPE_SET;
+		}
 		return startProfilingNative();
 	}
-	
-	public native int startProfilingNative();
 
-	public synchronized int endProfiling(){
-		return endProfilingNative();
+	private native int startProfilingNative();
+
+	/**
+	 * end the current profiling
+	 */
+	public synchronized int endProfiling() {
+		if (!experimentRunning_) {
+			return PROFILER_NOT_RUNNING;
+		}
+		int returnCode = endProfilingNative();
+		experimentRunning_ = false;
+		return returnCode;
 	}
-	
-	public native int endProfilingNative();
 
-	public synchronized int setProgressPoint(String className, int lineNo){
+	private native int endProfilingNative();
+
+	/**
+	 * set progress point
+	 */
+	public synchronized int setProgressPoint(String className, int lineNo) {
+		if (experimentRunning_) {
+			return CANNOT_CALL_WHEN_RUNNING;
+		}
 		return setProgressPointNative(className, lineNo);
 	}
-	
-	public native int setProgressPointNative(String className, int lineNo);
 
+	private native int setProgressPointNative(String className, int lineNo);
+
+	/**
+	 * get the serialized output from recently run experiments
+	 */
 	public synchronized byte[] getProfilerOutput() throws IOException {
-		System.out.println("get Profiler output, numExperiments "+cachedOutput.size());
+		if (!experimentRunning_) {
+			return null;
+		}
+		System.out.println("get Profiler output, numExperiments "
+				+ cachedOutput.size());
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		ObjectOutputStream oos = new ObjectOutputStream(baos);
 		oos.writeInt(cachedOutput.size());
-		for (Experiment e : cachedOutput){
+		for (Experiment e : cachedOutput) {
 			e.serialize(oos);
 		}
 		System.out.println();
@@ -59,68 +144,95 @@ public class JCozProfiler implements JCozProfilerMBean {
 		oos.flush();
 		return baos.toByteArray();
 	}
-	
-	private synchronized void clearCachedOutput(){
+
+	/**
+	 * clear the experiments in the buffer
+	 */
+	private synchronized void clearCachedOutput() {
 		cachedOutput.clear();
 	}
-	
-	private synchronized void cacheOutput(String classSig, int lineNo, float speedup, long duration, long pointsHit){
-		cachedOutput.add(new Experiment(classSig, lineNo, speedup, duration, pointsHit));
+
+	/**
+	 * method for the profiler to add an experiment to the buffer
+	 * @param classSig
+	 * @param lineNo
+	 * @param speedup
+	 * @param duration
+	 * @param pointsHit
+	 */
+	private synchronized void cacheOutput(String classSig, int lineNo,
+			float speedup, long duration, long pointsHit) {
+		cachedOutput.add(new Experiment(classSig, lineNo, speedup, duration,
+				pointsHit));
 	}
-	
-	public synchronized String getCurrentScope(){
-		return currentScope;
+
+	/**
+	 * get the current experiment scope
+	 */
+	public synchronized String getCurrentScope() {
+		return currentScope_;
 	}
-	
-	public synchronized int setScope(String scopePackage){
+
+	/**
+	 * set the scope to profile
+	 */
+	public synchronized int setScope(String scopePackage) {
+		if (experimentRunning_) {
+			return CANNOT_CALL_WHEN_RUNNING;
+		}
 		int scopeReturn = setScopeNative(scopePackage);
-		if(scopeReturn == 0){
-			currentScope = scopePackage;
+		if (scopeReturn == 0) {
+			currentScope_ = scopePackage;
 		}
 		return scopeReturn;
 	}
-	
-	public native int setScopeNative(String scopePackage);
-	
-	public synchronized String getProgressPoint(){
-		return progressPointClass_ +":"+progressPointLineNo;
+
+	private native int setScopeNative(String scopePackage);
+
+	/**
+	 * get the current progress point as a string class and line number are separated by a ':'
+	 */
+	public synchronized String getProgressPoint() {
+		return progressPointClass_ + ":" + progressPointLineNo_;
 	}
-	
-	public synchronized static void registerProfilerWithMBeanServer(){
-		if(!registered){
-		MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-		try {
-			JCozProfiler mbean = new JCozProfiler(); 
-	        mbs.registerMBean(mbean, getMBeanName()); 
-		} catch (InstanceAlreadyExistsException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (MBeanRegistrationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NotCompliantMBeanException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
-		
+
+	/**
+	 * register the profiler with the Platform mbean server
+	 */
+	public synchronized static void registerProfilerWithMBeanServer() {
+		if (!registered_) {
+			MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+			registered_ = true;
+			try {
+				JCozProfiler mbean = new JCozProfiler();
+				synchronized (mbean) {
+					mbs.registerMBean(mbean, getMBeanName());
+				}
+			} catch (InstanceAlreadyExistsException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (MBeanRegistrationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NotCompliantMBeanException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
-	
-	public static void main(String[] args) throws InterruptedException{
-		while(true){
-			System.out.println("Sleeping");
-			Thread.sleep(5000);
-			
-		}
-	}
-	
-	public static ObjectName getMBeanName(){
+
+	/**
+	 * get the ObjectName of this mbean
+	 * @return
+	 */
+	public static ObjectName getMBeanName() {
 		try {
-			return new ObjectName(JCozProfiler.class.getPackage().getName()+":type="+JCozProfiler.class.getSimpleName());
+			return new ObjectName(JCozProfiler.class.getPackage().getName()
+					+ ":type=" + JCozProfiler.class.getSimpleName());
 		} catch (MalformedObjectNameException e) {
 			// do nothing, this should never be malformed
 			throw new Error(e);
 		}
-		
+
 	}
 }
