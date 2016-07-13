@@ -18,24 +18,32 @@
  * (https://github.com/dcapwell/lightweight-java-profiler). See APACHE_LICENSE for
  * a copy of the license that was included with that original work.
  */
+package com.vernetperronllc.jcoz.service;
 
-package com.vernetperronllc.jcoz.agent;
+/**
+ * @author matt
+ *
+ */
+public class JCozException extends Exception{
+	/**
+	 * serialVersionUID
+	 */
+	private static final long serialVersionUID = -7912298271464056903L;
 
-import java.io.IOException;
+	public JCozException(){
+		super();
+	}
 
-public interface JCozProfilerMBean {
+	public JCozException(String message) {
+		super(message);
+	}
 	
-	public int startProfiling();
+	public JCozException(Throwable cause){
+		super(cause);
+	}
 	
-	public int endProfiling();
-	
-	public int setProgressPoint(String className, int lineNo);
-	
-	public int setScope(String scope);
-	
-	public byte[] getProfilerOutput() throws IOException;
-	
-	public String getCurrentScope();
-	
-	public String getProgressPoint();
+	public JCozException(String message, Throwable cause){
+		super(message, cause);
+	}
+
 }

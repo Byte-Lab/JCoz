@@ -36,7 +36,7 @@
 #define PROFILER_H
 
 struct Experiment {
-    unsigned long points_hit = 0;
+    long points_hit = 0;
     float speedup;
     long delay;
     long duration = 0;
@@ -49,7 +49,7 @@ struct Experiment {
 struct UserThread {
     pthread_t thread;
     long local_delay = 0;
-    unsigned long points_hit = 0;
+    long points_hit = 0;
     unsigned int num_signals_received = 0;
     jthread java_thread;
 };
@@ -103,7 +103,9 @@ class Profiler {
 
   static void removeUserThread(jthread thread);
 
-  static void setJVMTI(jvmtiEnv *jvmti);
+  void setJVMTI(jvmtiEnv *jvmti);
+
+  jvmtiEnv * getJVMTI();
 
   static void addInScopeMethods(jint method_count, jmethodID *methods);
 
@@ -121,18 +123,43 @@ class Profiler {
           jlocation location
   );
 
+  void setScope(std::string package);
+
+  void setProgressPoint(std::string class_name, jint line_no);
+
+  void setMBeanObject(jobject mbean);
+
+  jobject getMBeanObject();
+
+  void clearMBeanObject();
+
+  void setJNI(JNIEnv* jni);
+
+  static void clearInScopeMethods();
+
+  static bool isRunning();
+
+  void init();
+
  private:
+
   jvmtiEnv *jvmti_;
 
   SignalHandler handler_;
 
   struct sigaction old_action_;
 
+  static JNIEnv *jni_;
+
   static void Handle(int signum, siginfo_t *info, void *context);
 
   static bool inline inExperiment(JVMPI_CallFrame &curr_frame);
   static bool inline frameInScope(JVMPI_CallFrame &curr_frame);
   DISALLOW_COPY_AND_ASSIGN(Profiler);
+
+  static jobject mbean;
+
+  static jmethodID mbean_cache_method_id;
 
   static std::unordered_set<void *> in_scope_ids;
 
@@ -158,7 +185,7 @@ class Profiler {
 
   static volatile bool _running;
 
-  static void runExperiment();
+  static void runExperiment(JNIEnv * jnienv);
 
   static float calculate_random_speedup();
 
@@ -183,8 +210,6 @@ class Profiler {
   static struct ProgressPoint *progress_point;
 
   static std::string progress_class;
-
-  static std::ofstream prof_output;
 
   static unsigned long experiment_time;
 
