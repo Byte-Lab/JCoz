@@ -71,10 +71,10 @@ std::unordered_set<struct UserThread *> Profiler::user_threads;
 jvmtiEnv *Profiler::jvmti;
 std::atomic<long> Profiler::global_delay(0);
 std::atomic_ulong Profiler::points_hit(0);
-volatile bool Profiler::_running = false;
+std::atomic_bool Profiler::_running(false);
 volatile bool Profiler::end_to_end = false;
 pthread_t Profiler::agent_pthread;
-volatile bool Profiler::profile_done = false;
+std::atomic_bool Profiler::profile_done(false);
 unsigned long Profiler::experiment_time = 5000;
 jobject Profiler::mbean;
 jmethodID Profiler::mbean_cache_method_id;
@@ -122,7 +122,7 @@ inline long jcoz_sleep(long nanoseconds) {
 
     auto end = std::chrono::high_resolution_clock::now();
     nanoseconds_type total_sleep = (end - start);
- 
+
 	return total_sleep.count();
 }
 
@@ -158,7 +158,7 @@ void Profiler::ParseOptions(const char *options) {
         if( option == "pkg" || option == "package" ) {
             this->package = value;
         } else if (option == "progress-point") {
-            
+
         // else extract progress point
             size_t colon_index = value.find(':');
             if( colon_index == std::string::npos ) {
@@ -223,7 +223,7 @@ void Profiler::signal_user_threads() {
 }
 
 void Profiler::print_usage() {
-    std::cout 
+    std::cout
         << "usage: java -agentpath:<absolute_path_to_agent>="
         << "pkg=<package_name>_"
         << "progress-point=<class:line_no>_"
@@ -277,6 +277,13 @@ void Profiler::runExperiment(JNIEnv * jni_env) {
 	signal_user_threads();
 	jcoz_sleep(SIGNAL_FREQ);
 
+	//TODO this is to avoid calling up to a synchronized java method, resulting in a deadlock,
+	// this might still be a race condition with Stop()
+	if(!_running){
+		delete[] current_experiment.location_ranges;
+		return;
+	}
+
 	auto expEnd = std::chrono::high_resolution_clock::now();
     current_experiment.delay = global_delay;
 	current_experiment.points_hit = points_hit;
@@ -319,7 +326,7 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
 	curr_ut = NULL;
 	user_threads_lock = 0;
 	std::atomic_thread_fence(std::memory_order_release);
-	usleep(warmup_time);
+//	usleep(warmup_time);
     prof_ready = true;
 
 	while (_running) {
@@ -520,7 +527,7 @@ void Profiler::addProgressPoint(jint method_count, jmethodID *methods) {
     if( end_to_end || ((progress_point->method_id) != nullptr) ) {
         return;
     }
-    
+
 	for (int i = 0; i < method_count; i++) {
         jint entry_count;
         JvmtiScopedPtr<jvmtiLineNumberEntry> entries(jvmti);
@@ -539,6 +546,7 @@ void Profiler::addProgressPoint(jint method_count, jmethodID *methods) {
                 progress_point->location = curr_entry.start_location;
                 jvmti->SetBreakpoint(progress_point->method_id, progress_point->location);
                 printf("Progress point set\n");
+                fflush(stdout);
                 return;
             }
         }
@@ -767,6 +775,7 @@ void Profiler::cleanSignature(char *sig) {
 void Profiler::clearProgressPoint() {
     if( !end_to_end && (progress_point->method_id != nullptr) ) {
         jvmti->ClearBreakpoint(progress_point->method_id, progress_point->location);
+        progress_point->method_id = nullptr;
     }
 }
 
@@ -774,15 +783,17 @@ void Profiler::Stop() {
 
     // Wait until we get to the end of the run
     // and then flush the profile output
-	if (end_to_end) {
-		points_hit++;
+	if(_running){
+		if (end_to_end) {
+			points_hit++;
+		}
+
+		_running = false;
+
+		while (!profile_done)
+			;
+
 	}
-    
-	_running = false;
-
-	while (!profile_done)
-		;
-
     clearInScopeMethods();
 	signal(SIGPROF, SIG_IGN);
 }

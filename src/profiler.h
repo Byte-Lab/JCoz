@@ -183,7 +183,7 @@ class Profiler {
 
   static std::atomic<long> global_delay;
 
-  static volatile bool _running;
+  static std::atomic_bool _running;
 
   static void runExperiment(JNIEnv * jnienv);
 
@@ -199,7 +199,7 @@ class Profiler {
 
   static volatile pthread_t in_scope_lock;
 
-  static volatile bool profile_done;
+  static std::atomic_bool profile_done;
 
   static void cleanSignature(char *sig);
 
