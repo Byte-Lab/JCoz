@@ -20,13 +20,13 @@
  */
 package com.vernetperronllc.jcoz.client.ui;
 
-import com.sun.tools.attach.AgentInitializationException;
-import com.sun.tools.attach.AgentLoadException;
-import com.sun.tools.attach.AttachNotSupportedException;
+import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
-import com.vernetperronllc.jcoz.service.JCozClient;
-import java.io.IOException;
+import com.vernetperronllc.jcoz.service.JCozException;
+import com.vernetperronllc.jcoz.service.JCozProcessWrapper;
+import com.vernetperronllc.jcoz.service.VirtualMachineConnectionException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javafx.application.Application;
@@ -68,7 +68,7 @@ public class JCozClientUI extends Application {
         grid.add(scenetitle, 0, 0, 2, 1);
 
         // List of running processes
-        final Map<String, VirtualMachineDescriptor> vmDescriptors = JCozClient.getJCozVMList();
+        final Map<String, VirtualMachineDescriptor> vmDescriptors = JCozClientUI.getJCozVMList();
         final ListView<String> vmList = new ListView<>();
         List<String> vmNameList = new ArrayList<>(vmDescriptors.keySet());
         ObservableList<String> items = FXCollections.observableList(vmNameList);
@@ -92,20 +92,16 @@ public class JCozClientUI extends Application {
                 String chosenProcess = vmList.getSelectionModel().getSelectedItem();
                 VirtualMachineDescriptor vmDesc = vmDescriptors.get(chosenProcess);
                 try {
-                    JCozClient profiledClient = new JCozClient(vmDesc);
+                    JCozProcessWrapper profiledClient =
+                            new JCozProcessWrapper(vmDesc);
                     // TODO(david): Switch the scene and allow the user to
                     // control the profiling process from the UI.
                     profiledClient.startProfiling();
-                } catch (AttachNotSupportedException e) {
-                    System.err.println("Unable to attach to VM");
+                } catch (VirtualMachineConnectionException e) {
+                    System.err.println("There was an issue with the profiled VM");
                     System.err.println(e.getMessage());
-                } catch (IOException e) {
-                    System.err.println(e.getMessage());
-                } catch (AgentLoadException e) {
-                    System.err.println("Unable to load Agent");
-                    System.err.println(e.getMessage());
-                } catch (AgentInitializationException e) {
-                    System.err.println("Unable to initialize Agent");
+                } catch (JCozException e) {
+                    System.err.println("A JCoz exception was thrown.");
                     System.err.println(e.getMessage());
                 }
             }
@@ -125,4 +121,22 @@ public class JCozClientUI extends Application {
     public static void main(String[] args) {
         launch(args);
     }
+    
+    /**
+     * Search through the list of running VMs on the localhost
+     * and attach to a JCoz Profiler instance.
+     * @return Map<String, VirtualMachineDescriptor> A list of the VirtualMachines that
+     *      should be queried for being profilable.
+     */
+    private static Map<String, VirtualMachineDescriptor> getJCozVMList() {
+        Map<String, VirtualMachineDescriptor> jcozVMs = new HashMap<>();
+        for(VirtualMachineDescriptor vmDesc : VirtualMachine.list()){
+            if (vmDesc.displayName().endsWith("JCozProfiler")){
+                jcozVMs.put(vmDesc.displayName(), vmDesc);
+            }
+        }
+        
+        return jcozVMs;
+    }
+
 }
