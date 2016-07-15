@@ -49,19 +49,20 @@ public class JCozProcessWrapper {
 	
 	private static final String CONNECTOR_ADDRESS_PROPERTY_KEY = "com.sun.management.jmxremote.localConnectorAddress";
 	
-	public JCozProcessWrapper(VirtualMachineDescriptor descriptor) throws VirtualMachineConnectionException{
+	public JCozProcessWrapper(VirtualMachineDescriptor descriptor)
+			throws VirtualMachineConnectionException{
 		try{
-		vm = VirtualMachine.attach(descriptor);
-		vm.startLocalManagementAgent();
-		Properties props = vm.getAgentProperties();
-		String connectorAddress =
-		        props.getProperty(CONNECTOR_ADDRESS_PROPERTY_KEY);
-	    JMXServiceURL url = new JMXServiceURL(connectorAddress);
-	    JMXConnector connector = JMXConnectorFactory.connect(url);
-        MBeanServerConnection mbeanConn = connector.getMBeanServerConnection();
-        mbeanProxy = JMX.newMXBeanProxy(mbeanConn, 
+			vm = VirtualMachine.attach(descriptor);
+			vm.startLocalManagementAgent();
+			Properties props = vm.getAgentProperties();
+			String connectorAddress =
+			        props.getProperty(CONNECTOR_ADDRESS_PROPERTY_KEY);
+		    JMXServiceURL url = new JMXServiceURL(connectorAddress);
+		    JMXConnector connector = JMXConnectorFactory.connect(url);
+	        MBeanServerConnection mbeanConn = connector.getMBeanServerConnection();
+	        mbeanProxy = JMX.newMXBeanProxy(mbeanConn, 
         	    JCozProfiler.getMBeanName(),  JCozProfilerMBean.class);
-		}catch(IOException | AttachNotSupportedException e){
+		} catch(IOException | AttachNotSupportedException e){
 			throw new VirtualMachineConnectionException(e);
 		}
 	}
@@ -72,7 +73,6 @@ public class JCozProcessWrapper {
 		if(returnCode != 0){
 			throw JCozExceptionFactory.getInstance().getJCozExceptionFromErrorCode(returnCode);
 		}
-		
 	}
 	
 	public void endProfiling() throws JCozException{

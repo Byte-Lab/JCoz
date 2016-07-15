@@ -57,61 +57,9 @@ import javafx.stage.Stage;
 public class JCozClientUI extends Application {
     
     @Override
-    public void start(Stage primaryStage) {
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(25, 25, 25, 25));
-
-        final Text scenetitle = new Text("Profile a process");
-        scenetitle.setFont(Font.font("Tahoma", FontWeight.NORMAL, 20));
-        grid.add(scenetitle, 0, 0, 2, 1);
-
-        // List of running processes
-        final Map<String, VirtualMachineDescriptor> vmDescriptors = JCozClientUI.getJCozVMList();
-        final ListView<String> vmList = new ListView<>();
-        List<String> vmNameList = new ArrayList<>(vmDescriptors.keySet());
-        ObservableList<String> items = FXCollections.observableList(vmNameList);
-        vmList.setItems(items);
-        vmList.setPrefWidth(100);
-        vmList.setPrefHeight(70);
-        grid.add(vmList, 0, 1, 2, 1);
-        
-        // Scope text element
-        final Label packageLabel = new Label("Profiling scope (package):");
-        grid.add(packageLabel, 0, 2);
-        final TextField packageValue = new TextField();
-//        packageValue.setPromptText("Enter the package to profile...");
-        grid.add(packageValue, 1, 2);
-
-        Button btn = new Button();
-        btn.setText("Profile process");
-        btn.setOnAction(new EventHandler<ActionEvent>() { 
-            @Override
-            public void handle(ActionEvent event) {
-                String chosenProcess = vmList.getSelectionModel().getSelectedItem();
-                VirtualMachineDescriptor vmDesc = vmDescriptors.get(chosenProcess);
-                try {
-                    JCozProcessWrapper profiledClient =
-                            new JCozProcessWrapper(vmDesc);
-                    // TODO(david): Switch the scene and allow the user to
-                    // control the profiling process from the UI.
-                    profiledClient.startProfiling();
-                } catch (VirtualMachineConnectionException e) {
-                    System.err.println("There was an issue with the profiled VM");
-                    System.err.println(e.getMessage());
-                } catch (JCozException e) {
-                    System.err.println("A JCoz exception was thrown.");
-                    System.err.println(e.getMessage());
-                }
-            }
-        });
-        grid.add(btn, 0, 3);
-        
-        Scene scene = new Scene(grid, 600, 400);
-        
+    public void start(Stage primaryStage) {        
         primaryStage.setTitle("JCoz Client");
-        primaryStage.setScene(scene);
+        primaryStage.setScene(PickProcessScene.getPickProcessScene());
         primaryStage.show();
     }
 
@@ -121,22 +69,4 @@ public class JCozClientUI extends Application {
     public static void main(String[] args) {
         launch(args);
     }
-    
-    /**
-     * Search through the list of running VMs on the localhost
-     * and attach to a JCoz Profiler instance.
-     * @return Map<String, VirtualMachineDescriptor> A list of the VirtualMachines that
-     *      should be queried for being profilable.
-     */
-    private static Map<String, VirtualMachineDescriptor> getJCozVMList() {
-        Map<String, VirtualMachineDescriptor> jcozVMs = new HashMap<>();
-        for(VirtualMachineDescriptor vmDesc : VirtualMachine.list()){
-            if (vmDesc.displayName().endsWith("JCozProfiler")){
-                jcozVMs.put(vmDesc.displayName(), vmDesc);
-            }
-        }
-        
-        return jcozVMs;
-    }
-
 }
