@@ -47,10 +47,13 @@ public class JCozProcessWrapper {
 	
 	private JCozProfilerMBean mbeanProxy;
 	
+	VirtualMachineDescriptor descriptor;
+	
 	private static final String CONNECTOR_ADDRESS_PROPERTY_KEY = "com.sun.management.jmxremote.localConnectorAddress";
 	
 	public JCozProcessWrapper(VirtualMachineDescriptor descriptor)
 			throws VirtualMachineConnectionException{
+		this.descriptor = descriptor;
 		try{
 			vm = VirtualMachine.attach(descriptor);
 			vm.startLocalManagementAgent();
@@ -123,5 +126,9 @@ public class JCozProcessWrapper {
 	
 	public String getProgressPoint(){
 		return mbeanProxy.getProgressPoint();
+	}
+	
+	public VirtualMachineDescriptor getDescriptor() {
+		return this.descriptor;
 	}
 }

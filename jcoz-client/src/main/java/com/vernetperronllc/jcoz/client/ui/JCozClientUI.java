@@ -59,7 +59,7 @@ public class JCozClientUI extends Application {
     @Override
     public void start(Stage primaryStage) {        
         primaryStage.setTitle("JCoz Client");
-        primaryStage.setScene(PickProcessScene.getPickProcessScene());
+        primaryStage.setScene(PickProcessScene.getPickProcessScene(primaryStage));
         primaryStage.show();
     }
 

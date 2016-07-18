@@ -24,16 +24,18 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.stage.Stage;
 
 public class PickProcessScene {
     
 	private static Map<String, VirtualMachineDescriptor> activeJCozVMs;
 	
-	private static PickProcessScene ppScene = new PickProcessScene();
+	private static PickProcessScene ppScene = null;
 	
 	private final GridPane grid = new GridPane();
 	
@@ -48,7 +50,7 @@ public class PickProcessScene {
 	private final Button profileProcessBtn = new Button();
 	
 	/** Disable constructor */
-	private PickProcessScene() {
+	private PickProcessScene(Stage stage) {
 		// Set layout of grid
 		this.grid.setHgap(10);
         this.grid.setVgap(10);
@@ -69,6 +71,13 @@ public class PickProcessScene {
         	}
         };
         vmListUpdateTimer.schedule(vmListUpdateTimerTask, 0, 2000);
+        this.vmList.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        	@Override
+        	public void handle(MouseEvent event) {
+    			boolean hasProcess = vmList.getSelectionModel().getSelectedItem() != null;
+//    			profileProcessBtn.setDisable(!hasProcess);
+        	}
+        });
 
         this.grid.add(this.vmList, 0, 1, 5, 1);
         
@@ -83,6 +92,7 @@ public class PickProcessScene {
         this.grid.add(this.klass, 4, 2);
 
         this.profileProcessBtn.setText("Profile process");
+        this.profileProcessBtn.setDisable(false);
         this.profileProcessBtn.setOnAction(new EventHandler<ActionEvent>() { 
             @Override
             public void handle(ActionEvent event) {
@@ -95,6 +105,9 @@ public class PickProcessScene {
                     // TODO(david): Switch the scene and allow the user to
                     // control the profiling process from the UI.
                     profiledClient.startProfiling();
+                    
+                    stage.setScene(VisualizeProfileScene.getVisualizeProfileScene(
+                    		profiledClient,stage));
                 } catch (VirtualMachineConnectionException e) {
                     System.err.println("There was an issue with the profiled VM");
                     System.err.println(e.getMessage());
@@ -104,7 +117,7 @@ public class PickProcessScene {
                 }
             }
         });
-        this.grid.add(this.profileProcessBtn, 0, 3);
+        this.grid.add(this.profileProcessBtn, 0, 10);
         
         this.scene = new Scene(this.grid, 980, 600);
 	}
@@ -143,7 +156,10 @@ public class PickProcessScene {
 		return this.klass.getText();
 	}
 	
-	public static Scene getPickProcessScene() {
+	public static Scene getPickProcessScene(Stage stage) {
+		if (ppScene == null) {
+			ppScene = new PickProcessScene(stage);
+		}
 		
 		return PickProcessScene.ppScene.getScene();
 	}
