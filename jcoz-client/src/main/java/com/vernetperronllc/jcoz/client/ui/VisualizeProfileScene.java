@@ -71,14 +71,16 @@ public class VisualizeProfileScene {
         final FileChooser fileChooser = new FileChooser();
         final Button changeOutputButton = new Button("Set profile output file:");
         this.profileOutput.setDisable(true);
-        changeOutputButton.setOnAction(
-        	(final ActionEvent e) -> {
+        changeOutputButton.setOnAction(new EventHandler<ActionEvent>() {
+        	@Override
+        	public void handle(ActionEvent e) {
         		fileChooser.setTitle("Profile output");
         		File newFile = fileChooser.showSaveDialog(stage);
         		if (newFile != null) {
-        			this.outputFile = newFile;
-        			this.profileOutput.setText(this.outputFile.getName());
+        			outputFile = newFile;
+        			profileOutput.setText(outputFile.getName());
         		}
+        	}
         });
         this.grid.add(changeOutputButton, 0, 4);
         this.grid.add(this.profileOutput, 1, 4);
