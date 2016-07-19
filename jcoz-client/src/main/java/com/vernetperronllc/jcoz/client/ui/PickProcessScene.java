@@ -50,7 +50,7 @@ public class PickProcessScene {
 	private final Button profileProcessBtn = new Button();
 	
 	/** Disable constructor */
-	private PickProcessScene(Stage stage) {
+	private PickProcessScene(final Stage stage) {
 		// Set layout of grid
 		this.grid.setHgap(10);
         this.grid.setVgap(10);
@@ -156,7 +156,7 @@ public class PickProcessScene {
 		return this.klass.getText();
 	}
 	
-	public static Scene getPickProcessScene(Stage stage) {
+	public static Scene getPickProcessScene(final Stage stage) {
 		if (ppScene == null) {
 			ppScene = new PickProcessScene(stage);
 		}
