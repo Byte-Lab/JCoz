@@ -23,6 +23,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
@@ -30,6 +31,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.util.converter.NumberStringConverter;
 
 public class PickProcessScene {
     
@@ -47,6 +49,8 @@ public class PickProcessScene {
 	
 	private final TextField scope = new TextField();
 	
+	private final TextField progressPoint = new TextField();
+
 	private final Button profileProcessBtn = new Button();
 	
 	/** Disable constructor */
@@ -75,24 +79,38 @@ public class PickProcessScene {
         	@Override
         	public void handle(MouseEvent event) {
     			boolean hasProcess = vmList.getSelectionModel().getSelectedItem() != null;
-//    			profileProcessBtn.setDisable(!hasProcess);
+    			boolean hasClass = (klass.getText() != null) && !klass.getText().equals("");
+    			boolean hasScope = (scope.getText() != null) && !scope.getText().equals("");
+    			boolean hasProgressPoint = (progressPoint != null) && !progressPoint.equals("");
+    			profileProcessBtn.setDisable(
+    					hasProcess ||
+    					hasProgressPoint ||
+    					hasScope ||
+    					hasClass);
         	}
         });
 
         this.grid.add(this.vmList, 0, 1, 5, 1);
         
-        // Scope text element
+        // Scope text element.
         final Label packageLabel = new Label("Profiling scope (package):");
         this.grid.add(packageLabel, 0, 2);
         this.grid.add(this.scope, 1, 2);
         
-        // Scope text element
+        // Scope text element.
         final Label classLabel = new Label("Profiling class:");
         this.grid.add(classLabel, 3, 2);
         this.grid.add(this.klass, 4, 2);
+        
+        // Progress point element.
+        final Label progressPointLabel = new Label("Progress point:");
+        this.grid.add(progressPointLabel, 0, 3);
+        this.progressPoint.setTextFormatter(
+        		new TextFormatter<>(new NumberStringConverter()));
+        this.grid.add(this.progressPoint, 1, 3);
 
         this.profileProcessBtn.setText("Profile process");
-        this.profileProcessBtn.setDisable(false);
+        this.profileProcessBtn.setDisable(true);
         this.profileProcessBtn.setOnAction(new EventHandler<ActionEvent>() { 
             @Override
             public void handle(ActionEvent event) {
