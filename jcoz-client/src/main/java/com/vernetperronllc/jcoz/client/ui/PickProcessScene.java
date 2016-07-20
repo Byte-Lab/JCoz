@@ -174,9 +174,7 @@ public class PickProcessScene {
         PickProcessScene.activeJCozVMs = new HashMap<>();
         List<VirtualMachineDescriptor> vmDescriptions = VirtualMachine.list();
         for(VirtualMachineDescriptor vmDesc : vmDescriptions){
-            if (vmDesc.displayName().endsWith("JCozProfiler")){
-            	activeJCozVMs.put(vmDesc.displayName(), vmDesc);
-            }
+        	activeJCozVMs.put(vmDesc.displayName(), vmDesc);
         }
         
         return activeJCozVMs;
