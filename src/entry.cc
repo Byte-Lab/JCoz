@@ -108,6 +108,8 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
 
       }
 
+      //TODO: this matches a prefix. class name AA will match a progress
+      // point set with class A
       std::string progress_pt_str = "L" + prof->getProgressClass();
       if( strstr(ksig.Get(), progress_pt_str.c_str()) == ksig.Get() ) {
           prof->addProgressPoint(method_count, methods.Get());
@@ -131,6 +133,10 @@ jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
    jclass *classList = classes.Get();
    for (int i = 0; i < class_count; ++i) {
       jclass klass = classList[i];
+      JvmtiScopedPtr<char> ksig(jvmti);
+      jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
+      printf("start prof class load :%s\n", ksig.Get());
+      fflush(stdout);
       CreateJMethodIDsForClass(jvmti, klass);
    }
 

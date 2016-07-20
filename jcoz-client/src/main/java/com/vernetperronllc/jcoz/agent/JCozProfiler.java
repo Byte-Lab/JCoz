@@ -65,6 +65,15 @@ public class JCozProfiler implements JCozProfilerMBean {
 	 * is an experiment running
 	 */
 	private boolean experimentRunning_ = false;
+	/**
+	 * last time results were fetched
+	 */
+	private long lastCollectionMillis = System.currentTimeMillis();
+	
+	/**
+	 * end experiments after 30 seconds without fetch
+	 */
+	public static long INACTIVITY_THRESHOLD = 10000;
 
 	/*
 	 * error return codes
@@ -138,18 +147,16 @@ public class JCozProfiler implements JCozProfilerMBean {
 	 * get the serialized output from recently run experiments
 	 */
 	public synchronized byte[] getProfilerOutput() throws IOException {
+		lastCollectionMillis = System.currentTimeMillis();
 		if (!experimentRunning_) {
 			return null;
 		}
-		System.out.println("get Profiler output, numExperiments "
-				+ cachedOutput.size());
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		ObjectOutputStream oos = new ObjectOutputStream(baos);
 		oos.writeInt(cachedOutput.size());
 		for (Experiment e : cachedOutput) {
 			e.serialize(oos);
 		}
-		System.out.println();
 		clearCachedOutput();
 		oos.flush();
 		return baos.toByteArray();
@@ -174,6 +181,14 @@ public class JCozProfiler implements JCozProfilerMBean {
 			float speedup, long duration, long pointsHit) {
 		cachedOutput.add(new Experiment(classSig, lineNo, speedup, duration,
 				pointsHit));
+		if (System.currentTimeMillis()-lastCollectionMillis > INACTIVITY_THRESHOLD){
+			new Thread()
+			{
+			    public void run() {
+			        endProfiling();
+			    }
+			}.start();
+		}
 	}
 
 	/**
