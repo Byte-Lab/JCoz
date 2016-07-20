@@ -49,7 +49,7 @@ public class PickProcessScene {
 	
 	private final TextField scope = new TextField();
 	
-	private final TextField progressPoint = new TextField();
+	private final TextField lineNumber = new TextField();
 
 	private final Button profileProcessBtn = new Button();
 	
@@ -83,10 +83,10 @@ public class PickProcessScene {
         		boolean hasProcess = vmList.getSelectionModel().getSelectedItem() != null;
         		boolean hasClass = (klass.getText() != null) && !klass.getText().equals("");
         		boolean hasScope = (scope.getText() != null) && !scope.getText().equals("");
-        		boolean hasProgressPoint = (progressPoint != null) && !progressPoint.equals("");
+        		boolean hasLineNumber = (lineNumber != null) && !lineNumber.equals("");
         		profileProcessBtn.setDisable(
         				!hasProcess ||
-        				!hasProgressPoint ||
+        				!hasLineNumber ||
         				!hasScope ||
         				!hasClass);
         	}
@@ -106,11 +106,11 @@ public class PickProcessScene {
         this.grid.add(this.klass, 4, 2);
         
         // Progress point element.
-        final Label progressPointLabel = new Label("Progress point:");
-        this.grid.add(progressPointLabel, 0, 3);
-        this.progressPoint.setTextFormatter(
+        final Label lineNumberLabel = new Label("Line number:");
+        this.grid.add(lineNumberLabel, 0, 3);
+        this.lineNumber.setTextFormatter(
         		new TextFormatter<>(new NumberStringConverter()));
-        this.grid.add(this.progressPoint, 1, 3);
+        this.grid.add(this.lineNumber, 1, 3);
 
         this.profileProcessBtn.setText("Profile process");
         this.profileProcessBtn.setDisable(true);
@@ -123,8 +123,8 @@ public class PickProcessScene {
                 try {
                     JCozProcessWrapper profiledClient =
                             new JCozProcessWrapper(vmDesc);
-                    // TODO(david): Switch the scene and allow the user to
-                    // control the profiling process from the UI.
+
+                    setClientParameters(profiledClient);
                     profiledClient.startProfiling();
                     
                     stage.setScene(VisualizeProfileScene.getVisualizeProfileScene(
@@ -143,6 +143,14 @@ public class PickProcessScene {
         this.scene = new Scene(this.grid, 980, 600);
 	}
 	
+	private void setClientParameters(JCozProcessWrapper profiledClient) throws JCozException {
+        String className = klass.getText();
+        int lineNo = Integer.parseInt(lineNumber.getText());
+        profiledClient.setProgressPoint(className, lineNo);
+        
+        profiledClient.setScope(this.scope.getText());
+	}
+
 	private void updateVMList() {
         final Map<String, VirtualMachineDescriptor> vmDescriptors =
                 PickProcessScene.getJCozVMList();
