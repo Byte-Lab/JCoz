@@ -75,20 +75,23 @@ public class PickProcessScene {
         	}
         };
         vmListUpdateTimer.schedule(vmListUpdateTimerTask, 0, 2000);
-        this.vmList.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        
+        Timer buttonEnableTimer = new Timer("buttonEnable");
+        TimerTask buttonUpdateTask = new TimerTask() {
         	@Override
-        	public void handle(MouseEvent event) {
-    			boolean hasProcess = vmList.getSelectionModel().getSelectedItem() != null;
-    			boolean hasClass = (klass.getText() != null) && !klass.getText().equals("");
-    			boolean hasScope = (scope.getText() != null) && !scope.getText().equals("");
-    			boolean hasProgressPoint = (progressPoint != null) && !progressPoint.equals("");
-    			profileProcessBtn.setDisable(
-    					hasProcess ||
-    					hasProgressPoint ||
-    					hasScope ||
-    					hasClass);
+        	public void run() {
+        		boolean hasProcess = vmList.getSelectionModel().getSelectedItem() != null;
+        		boolean hasClass = (klass.getText() != null) && !klass.getText().equals("");
+        		boolean hasScope = (scope.getText() != null) && !scope.getText().equals("");
+        		boolean hasProgressPoint = (progressPoint != null) && !progressPoint.equals("");
+        		profileProcessBtn.setDisable(
+        				!hasProcess ||
+        				!hasProgressPoint ||
+        				!hasScope ||
+        				!hasClass);
         	}
-        });
+        };
+        buttonEnableTimer.schedule(buttonUpdateTask, 0, 100);
 
         this.grid.add(this.vmList, 0, 1, 5, 1);
         
@@ -131,7 +134,7 @@ public class PickProcessScene {
                     System.err.println(e.getMessage());
                 } catch (JCozException e) {
                     System.err.println("A JCoz exception was thrown.");
-                    System.err.println(e.getMessage());
+                    System.err.println(e);
                 }
             }
         });
