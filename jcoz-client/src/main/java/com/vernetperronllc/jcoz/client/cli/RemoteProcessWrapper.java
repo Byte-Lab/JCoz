@@ -18,57 +18,56 @@
  * (https://github.com/dcapwell/lightweight-java-profiler). See APACHE_LICENSE for
  * a copy of the license that was included with that original work.
  */
-
-package com.vernetperronllc.jcoz.service;
+package com.vernetperronllc.jcoz.client.cli;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 
-import javax.management.JMX;
-import javax.management.MBeanServerConnection;
-import javax.management.remote.JMXConnector;
-import javax.management.remote.JMXConnectorFactory;
-import javax.management.remote.JMXServiceURL;
-
-import com.sun.tools.attach.AttachNotSupportedException;
-import com.sun.tools.attach.VirtualMachine;
-import com.sun.tools.attach.VirtualMachineDescriptor;
-import com.vernetperronllc.jcoz.agent.JCozProfiler;
-import com.vernetperronllc.jcoz.agent.JCozProfilerMBean;
 import com.vernetperronllc.jcoz.Experiment;
+import com.vernetperronllc.jcoz.agent.JCozProfilingErrorCodes;
+import com.vernetperronllc.jcoz.service.InvalidWhenProfilerNotRunningException;
+import com.vernetperronllc.jcoz.service.JCozException;
+import com.vernetperronllc.jcoz.service.JCozExceptionFactory;
+import com.vernetperronllc.jcoz.service.JCozServiceInterface;
 
-public class JCozProcessWrapper {
+/**
+ * @author matt
+ *
+ */
+public class RemoteProcessWrapper implements TargetProcessInterface {
 	
-	private VirtualMachine vm;
+	JCozServiceInterface service;
+	int remotePid;
 	
-	private JCozProfilerMBean mbeanProxy;
-	
-	private static final String CONNECTOR_ADDRESS_PROPERTY_KEY = "com.sun.management.jmxremote.localConnectorAddress";
-	
-	public JCozProcessWrapper(VirtualMachineDescriptor descriptor) throws VirtualMachineConnectionException{
-		try{
-		vm = VirtualMachine.attach(descriptor);
-		vm.startLocalManagementAgent();
-		Properties props = vm.getAgentProperties();
-		String connectorAddress =
-		        props.getProperty(CONNECTOR_ADDRESS_PROPERTY_KEY);
-	    JMXServiceURL url = new JMXServiceURL(connectorAddress);
-	    JMXConnector connector = JMXConnectorFactory.connect(url);
-        MBeanServerConnection mbeanConn = connector.getMBeanServerConnection();
-        mbeanProxy = JMX.newMXBeanProxy(mbeanConn, 
-        	    JCozProfiler.getMBeanName(),  JCozProfilerMBean.class);
-		}catch(IOException | AttachNotSupportedException e){
-			throw new VirtualMachineConnectionException(e);
+	/**
+	 * 
+	 */
+	public RemoteProcessWrapper(JCozServiceInterface service, int pid) throws JCozException{
+		this.service = service;
+		this.remotePid = pid;
+		int returnCode;
+		try {
+			returnCode = service.attachToProcess(pid);
+		} catch (RemoteException e) {
+			throw new JCozException(e);
+		}
+		if (returnCode != JCozProfilingErrorCodes.NORMAL_RETURN){
+			throw JCozExceptionFactory.getInstance().getJCozExceptionFromErrorCode(returnCode);
 		}
 	}
-	
-	
+
+
 	public void startProfiling() throws JCozException{
-		int returnCode = mbeanProxy.startProfiling();
+		int returnCode;
+		try {
+			returnCode = service.startProfiling(remotePid);
+		} catch (RemoteException e) {
+			throw new JCozException(e);
+		}
 		if(returnCode != 0){
 			throw JCozExceptionFactory.getInstance().getJCozExceptionFromErrorCode(returnCode);
 		}
@@ -76,21 +75,36 @@ public class JCozProcessWrapper {
 	}
 	
 	public void endProfiling() throws JCozException{
-		int returnCode = mbeanProxy.endProfiling();
+		int returnCode;
+		try {
+			returnCode = service.endProfiling(remotePid);
+		} catch (RemoteException e) {
+			throw new JCozException(e);
+		}
 		if(returnCode != 0){
 			throw JCozExceptionFactory.getInstance().getJCozExceptionFromErrorCode(returnCode);
 		}
 	}
 	
 	public void setProgressPoint(String className, int lineNo) throws JCozException{
-		int returnCode = mbeanProxy.setProgressPoint(className, lineNo);
+		int returnCode;
+		try {
+			returnCode = service.setProgressPoint(remotePid, className, lineNo);
+		} catch (RemoteException e) {
+			throw new JCozException(e);
+		}
 		if(returnCode != 0){
 			throw JCozExceptionFactory.getInstance().getJCozExceptionFromErrorCode(returnCode);
 		}
 	}
 	
 	public void setScope(String scope) throws JCozException{
-		int returnCode = mbeanProxy.setScope(scope);
+		int returnCode;
+		try {
+			returnCode = service.setScope(remotePid, scope);
+		} catch (RemoteException e) {
+			throw new JCozException(e);
+		}
 		if(returnCode != 0){
 			throw JCozExceptionFactory.getInstance().getJCozExceptionFromErrorCode(returnCode);
 		}
@@ -101,7 +115,7 @@ public class JCozProcessWrapper {
 		ObjectInputStream ois;
 		
 		try {
-			byte[] profOutput = mbeanProxy.getProfilerOutput();
+			byte[] profOutput = service.getProfilerOutput(remotePid);
 			if (profOutput == null){
 				throw new InvalidWhenProfilerNotRunningException();
 			}
@@ -117,11 +131,20 @@ public class JCozProcessWrapper {
     	return experiments;
 	}
 	
-	public String getCurrentScope(){
-		return mbeanProxy.getCurrentScope();
+	public String getCurrentScope() throws JCozException{
+		try {
+			return service.getCurrentScope(remotePid);
+		} catch (RemoteException e) {
+			throw new JCozException(e);
+		}
 	}
 	
-	public String getProgressPoint(){
-		return mbeanProxy.getProgressPoint();
+	public String getProgressPoint() throws JCozException{
+		try {
+			return service.getProgressPoint(remotePid);
+		} catch (RemoteException e) {
+			throw new JCozException(e);
+		}
 	}
+
 }

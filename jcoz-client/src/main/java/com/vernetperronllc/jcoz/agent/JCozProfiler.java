@@ -75,15 +75,6 @@ public class JCozProfiler implements JCozProfilerMBean {
 	 */
 	public static long INACTIVITY_THRESHOLD = 10000;
 
-	/*
-	 * error return codes
-	 */
-	public static final int NORMAL_RETURN = 0;
-	public static final int NO_PROGRESS_POINT_SET = 1;
-	public static final int NO_SCOPE_SET = 2;
-	public static final int CANNOT_CALL_WHEN_RUNNING = 3;
-	public static final int PROFILER_NOT_RUNNING = 4;
-
 	/**
 	 * list of experiments run since last collected
 	 */
@@ -94,13 +85,13 @@ public class JCozProfiler implements JCozProfilerMBean {
 	 */
 	public synchronized int startProfiling() {
 		if (experimentRunning_) {
-			return CANNOT_CALL_WHEN_RUNNING;
+			return JCozProfilingErrorCodes.CANNOT_CALL_WHEN_RUNNING;
 		}
 		if (progressPointClass_ == null || progressPointLineNo_ == null) {
-			return NO_PROGRESS_POINT_SET;
+			return JCozProfilingErrorCodes.NO_PROGRESS_POINT_SET;
 		}
 		if (currentScope_ == null) {
-			return NO_SCOPE_SET;
+			return JCozProfilingErrorCodes.NO_SCOPE_SET;
 		}
 		experimentRunning_ = true;
 		return startProfilingNative();
@@ -113,7 +104,7 @@ public class JCozProfiler implements JCozProfilerMBean {
 	 */
 	public synchronized int endProfiling() {
 		if (!experimentRunning_) {
-			return PROFILER_NOT_RUNNING;
+			return JCozProfilingErrorCodes.PROFILER_NOT_RUNNING;
 		}
 		int returnCode = endProfilingNative();
 		experimentRunning_ = false;
@@ -128,12 +119,12 @@ public class JCozProfiler implements JCozProfilerMBean {
 	 */
 	public synchronized int setProgressPoint(String className, int lineNo) {
 		if (experimentRunning_) {
-			return CANNOT_CALL_WHEN_RUNNING;
+			return JCozProfilingErrorCodes.CANNOT_CALL_WHEN_RUNNING;
 		}
 		//replace class name . with /
 		String passedClassName = className.replace('.', '/');
 		int returnCode =  setProgressPointNative(passedClassName, lineNo);
-		if (returnCode == NORMAL_RETURN){
+		if (returnCode == JCozProfilingErrorCodes.NORMAL_RETURN){
 			this.progressPointClass_ = className;
 			this.progressPointLineNo_ = lineNo;
 		}
@@ -203,7 +194,7 @@ public class JCozProfiler implements JCozProfilerMBean {
 	 */
 	public synchronized int setScope(String scopePackage) {
 		if (experimentRunning_) {
-			return CANNOT_CALL_WHEN_RUNNING;
+			return JCozProfilingErrorCodes.CANNOT_CALL_WHEN_RUNNING;
 		}
 		int scopeReturn = setScopeNative(scopePackage);
 		if (scopeReturn == 0) {
