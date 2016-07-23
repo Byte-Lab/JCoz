@@ -18,40 +18,30 @@
  * (https://github.com/dcapwell/lightweight-java-profiler). See APACHE_LICENSE for
  * a copy of the license that was included with that original work.
  */
-package com.vernetperronllc.jcoz.service;
+package com.vernetperronllc.jcoz.client.cli;
 
-import com.vernetperronllc.jcoz.agent.JCozProfilingErrorCodes;
+import java.util.List;
+
+import com.vernetperronllc.jcoz.Experiment;
+import com.vernetperronllc.jcoz.service.JCozException;
 
 /**
- * generates exceptions based on return codes
  * @author matt
  *
  */
-public class JCozExceptionFactory {
+public interface TargetProcessInterface {
 	
-	private JCozExceptionFactory(){
-		
-	}
+	public void startProfiling() throws JCozException;
 	
-	public static final JCozExceptionFactory instance = new JCozExceptionFactory();
+	public void endProfiling() throws JCozException;
 	
-	public static JCozExceptionFactory getInstance(){
-		return instance;
-	}
+	public void setProgressPoint(String className, int lineNo) throws JCozException;
 	
-	public JCozException getJCozExceptionFromErrorCode(int errorCode){
-		switch(errorCode){
-		case JCozProfilingErrorCodes.NO_PROGRESS_POINT_SET:
-			return new NoProgressPointSetException();
-		case JCozProfilingErrorCodes.NO_SCOPE_SET:
-			return new NoScopeSetException();
-		case JCozProfilingErrorCodes.CANNOT_CALL_WHEN_RUNNING:
-			return new InvalidWhenProfilerRunningException();
-		case JCozProfilingErrorCodes.PROFILER_NOT_RUNNING:
-			return new InvalidWhenProfilerNotRunningException();
-		default:
-			return new JCozException("Unknown Exception occurred: "+errorCode);
-		}
-	}
+	public void setScope(String scope) throws JCozException;
 	
+	public List<Experiment> getProfilerOutput() throws JCozException;
+	
+	public String getCurrentScope() throws JCozException;
+	
+	public String getProgressPoint() throws JCozException;
 }

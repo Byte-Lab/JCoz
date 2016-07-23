@@ -19,7 +19,7 @@
  * a copy of the license that was included with that original work.
  */
 
-package com.vernetperronllc.jcoz.service;
+package com.vernetperronllc.jcoz.client.cli;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -39,9 +39,13 @@ import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
 import com.vernetperronllc.jcoz.agent.JCozProfiler;
 import com.vernetperronllc.jcoz.agent.JCozProfilerMBean;
+import com.vernetperronllc.jcoz.service.InvalidWhenProfilerNotRunningException;
+import com.vernetperronllc.jcoz.service.JCozException;
+import com.vernetperronllc.jcoz.service.JCozExceptionFactory;
+import com.vernetperronllc.jcoz.service.VirtualMachineConnectionException;
 import com.vernetperronllc.jcoz.Experiment;
 
-public class JCozProcessWrapper {
+public class LocalProcessWrapper implements TargetProcessInterface{
 	
 	private VirtualMachine vm;
 	
@@ -51,9 +55,7 @@ public class JCozProcessWrapper {
 	
 	private static final String CONNECTOR_ADDRESS_PROPERTY_KEY = "com.sun.management.jmxremote.localConnectorAddress";
 	
-	public JCozProcessWrapper(VirtualMachineDescriptor descriptor)
-			throws VirtualMachineConnectionException{
-		this.descriptor = descriptor;
+	public LocalProcessWrapper(VirtualMachineDescriptor descriptor) throws VirtualMachineConnectionException{
 		try{
 			vm = VirtualMachine.attach(descriptor);
 			vm.startLocalManagementAgent();

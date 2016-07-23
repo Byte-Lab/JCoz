@@ -35,7 +35,6 @@ import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
 import com.vernetperronllc.jcoz.Experiment;
 import com.vernetperronllc.jcoz.service.JCozException;
-import com.vernetperronllc.jcoz.service.JCozProcessWrapper;
 import com.vernetperronllc.jcoz.service.VirtualMachineConnectionException;
 
 
@@ -94,7 +93,7 @@ public class JCozCLI {
 			return;
 		}
 		
-		final JCozProcessWrapper wrapper = new JCozProcessWrapper(descriptor);
+		final LocalProcessWrapper wrapper = new LocalProcessWrapper(descriptor);
 		//catch SIGINT and end profiling
 		Runtime.getRuntime().addShutdownHook(new Thread()
         {

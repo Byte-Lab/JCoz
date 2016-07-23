@@ -13,8 +13,8 @@ import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
 import com.vernetperronllc.jcoz.Experiment;
 import com.vernetperronllc.jcoz.LineSpeedup;
+import com.vernetperronllc.jcoz.client.cli.TargetProcessInterface;
 import com.vernetperronllc.jcoz.service.JCozException;
-import com.vernetperronllc.jcoz.service.JCozProcessWrapper;
 import com.vernetperronllc.jcoz.service.VirtualMachineConnectionException;
 
 import javafx.collections.FXCollections;
@@ -146,11 +146,11 @@ public class VisualizeProfileScene {
 		return Integer.parseInt(this.experimentLength.getText());
 	}
 	
-	private void setClient(JCozProcessWrapper client) {
-		this.processNameText.setText(client.getDescriptor().displayName());
+	private void setClient(TargetProcessInterface client) {
+		this.processNameText.setText("Set descriptor name");
 	}
 	
-	public static Scene getVisualizeProfileScene(JCozProcessWrapper client, Stage stage) {
+	public static Scene getVisualizeProfileScene(TargetProcessInterface client, Stage stage) {
 		if (VisualizeProfileScene.vpScene == null) {
 			VisualizeProfileScene.vpScene = new VisualizeProfileScene(stage);
 		}

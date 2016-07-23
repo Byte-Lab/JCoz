@@ -20,38 +20,35 @@
  */
 package com.vernetperronllc.jcoz.service;
 
-import com.vernetperronllc.jcoz.agent.JCozProfilingErrorCodes;
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.util.List;
+
+import com.vernetperronllc.jcoz.JCozVMDescriptor;
 
 /**
- * generates exceptions based on return codes
  * @author matt
  *
  */
-public class JCozExceptionFactory {
+public interface JCozServiceInterface extends Remote{
 	
-	private JCozExceptionFactory(){
-		
-	}
+	public List<JCozVMDescriptor> getJavaProcessDescriptions() throws RemoteException;
 	
-	public static final JCozExceptionFactory instance = new JCozExceptionFactory();
+	public int attachToProcess(int pid) throws RemoteException;
 	
-	public static JCozExceptionFactory getInstance(){
-		return instance;
-	}
+	public int startProfiling(int pid) throws RemoteException;
 	
-	public JCozException getJCozExceptionFromErrorCode(int errorCode){
-		switch(errorCode){
-		case JCozProfilingErrorCodes.NO_PROGRESS_POINT_SET:
-			return new NoProgressPointSetException();
-		case JCozProfilingErrorCodes.NO_SCOPE_SET:
-			return new NoScopeSetException();
-		case JCozProfilingErrorCodes.CANNOT_CALL_WHEN_RUNNING:
-			return new InvalidWhenProfilerRunningException();
-		case JCozProfilingErrorCodes.PROFILER_NOT_RUNNING:
-			return new InvalidWhenProfilerNotRunningException();
-		default:
-			return new JCozException("Unknown Exception occurred: "+errorCode);
-		}
-	}
+	public int endProfiling(int pid) throws RemoteException;
 	
+	public int setProgressPoint(int pid, String className, int lineNo) throws RemoteException;
+	
+	public int setScope(int pid, String scope) throws RemoteException;
+	
+	public byte[] getProfilerOutput(int pid) throws RemoteException;
+	
+	public String getCurrentScope(int pid) throws RemoteException;
+	
+	public String getProgressPoint(int pid) throws RemoteException;
+	
+
 }

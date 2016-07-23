@@ -18,40 +18,47 @@
  * (https://github.com/dcapwell/lightweight-java-profiler). See APACHE_LICENSE for
  * a copy of the license that was included with that original work.
  */
-package com.vernetperronllc.jcoz.service;
+package com.vernetperronllc.jcoz;
 
-import com.vernetperronllc.jcoz.agent.JCozProfilingErrorCodes;
+import java.io.Serializable;
 
 /**
- * generates exceptions based on return codes
+ * 
+ * simple Bean for transporting VMDescriptor data
  * @author matt
  *
  */
-public class JCozExceptionFactory {
+public class JCozVMDescriptor implements Serializable{
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -1232246806223243256L;
 	
-	private JCozExceptionFactory(){
-		
+	private int pid;
+	private String displayName;
+	
+	
+	/**
+	 * @param pid
+	 * @param displayName
+	 */
+	public JCozVMDescriptor(int pid, String displayName) {
+		this.pid = pid;
+		this.displayName = displayName;
 	}
 	
-	public static final JCozExceptionFactory instance = new JCozExceptionFactory();
-	
-	public static JCozExceptionFactory getInstance(){
-		return instance;
+	/**
+	 * @return the pid
+	 */
+	public int getPid() {
+		return pid;
 	}
-	
-	public JCozException getJCozExceptionFromErrorCode(int errorCode){
-		switch(errorCode){
-		case JCozProfilingErrorCodes.NO_PROGRESS_POINT_SET:
-			return new NoProgressPointSetException();
-		case JCozProfilingErrorCodes.NO_SCOPE_SET:
-			return new NoScopeSetException();
-		case JCozProfilingErrorCodes.CANNOT_CALL_WHEN_RUNNING:
-			return new InvalidWhenProfilerRunningException();
-		case JCozProfilingErrorCodes.PROFILER_NOT_RUNNING:
-			return new InvalidWhenProfilerNotRunningException();
-		default:
-			return new JCozException("Unknown Exception occurred: "+errorCode);
-		}
+	/**
+	 * @return the displayName
+	 */
+	public String getDisplayName() {
+		return displayName;
 	}
-	
+
 }

@@ -23,7 +23,6 @@ package com.vernetperronllc.jcoz.client.ui;
 import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
 import com.vernetperronllc.jcoz.service.JCozException;
-import com.vernetperronllc.jcoz.service.JCozProcessWrapper;
 import com.vernetperronllc.jcoz.service.VirtualMachineConnectionException;
 import java.util.ArrayList;
 import java.util.HashMap;
