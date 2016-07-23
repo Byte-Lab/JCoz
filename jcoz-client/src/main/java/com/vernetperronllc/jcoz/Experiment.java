@@ -24,13 +24,14 @@ package com.vernetperronllc.jcoz;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.Comparator;
 
 /**
  * Simple bean which represents a single experiment
  * @author matt
  *
  */
-public class Experiment{
+public class Experiment implements Comparable<Experiment> {
 
 	/** 
 	 * public constructor, pass all data for experiment
@@ -120,5 +121,22 @@ public class Experiment{
 	 */
 	public static Experiment deserialize(ObjectInputStream ois) throws IOException{
 		return new Experiment(ois.readUTF(), ois.readInt(), ois.readFloat(), ois.readLong(), ois.readLong());
+	}
+	
+	@Override
+	public int compareTo(Experiment arg0) {
+		if (this.getSpeedup() < arg0.getSpeedup()) {
+			return -1;
+		} else if (this.getSpeedup() > arg0.getSpeedup()) {
+			return 1;
+		} else {
+			if (this.getPointsHit() < arg0.getPointsHit()) {
+				return -1;
+			} else if (this.getPointsHit() > arg0.getPointsHit()) {
+				return 1;
+			} else {
+				return 0;
+			}
+		}
 	}
 }

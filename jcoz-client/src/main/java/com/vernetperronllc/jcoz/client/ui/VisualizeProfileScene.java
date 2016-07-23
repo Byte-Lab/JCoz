@@ -2,6 +2,7 @@ package com.vernetperronllc.jcoz.client.ui;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +11,8 @@ import java.util.TimerTask;
 
 import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
+import com.vernetperronllc.jcoz.Experiment;
+import com.vernetperronllc.jcoz.LineSpeedup;
 import com.vernetperronllc.jcoz.service.JCozException;
 import com.vernetperronllc.jcoz.service.JCozProcessWrapper;
 import com.vernetperronllc.jcoz.service.VirtualMachineConnectionException;
@@ -20,6 +23,9 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -95,7 +101,32 @@ public class VisualizeProfileScene {
         this.viewGraphButton.setOnAction(new EventHandler<ActionEvent>() { 
             @Override
             public void handle(ActionEvent event) {
-            	System.out.println("Showing results");
+            	List<Experiment> experiments = VisualizeProfileScene.getTestExperiments();
+                //defining the axes
+                final NumberAxis xAxis = new NumberAxis();
+                final NumberAxis yAxis = new NumberAxis();
+                xAxis.setLabel("Line Speedup %");
+                yAxis.setLabel("Throughput improvement %");
+                
+                //creating the chart
+                final LineChart<Number,Number> lineChart = 
+                        new LineChart<Number,Number>(xAxis,yAxis);
+                        
+                lineChart.setTitle("Line xy Speedup");
+                //defining a series
+                XYChart.Series series = new XYChart.Series();
+                series.setName("Line xy speedup");
+                //populating the series with data
+                LineSpeedup lineSpeedup = new LineSpeedup(experiments);
+                Map<Double, Double> speedups = lineSpeedup.getSpeedupMap();
+                for (double speedup : speedups.keySet()) {
+                	double speedupActual = speedups.get(speedup) / lineSpeedup.getBaselineSpeedup();
+                    series.getData().add(new XYChart.Data(speedup, speedupActual));
+                }
+                
+                Scene scene  = new Scene(lineChart,800,600);
+                lineChart.getData().add(series);
+                grid.add(lineChart, 0, 5, 10, 10);
             }
         });
         this.grid.add(this.viewGraphButton, 0, 10);
@@ -125,6 +156,24 @@ public class VisualizeProfileScene {
 		}
 		vpScene.setClient(client);
 		return VisualizeProfileScene.vpScene.getScene();
+	}
+
+	public static List<Experiment> getTestExperiments() {
+		List<Experiment> experiments = new ArrayList<>();
+		
+		long duration = 100000L;
+		long basePtsHit = 50;
+		for (int i = 0; i < 1000; i++) {
+			String name = "Experiment_" + i;
+			int lineNo = 35;
+			
+			float speedup = (i / 50) * .05f;
+			long currDuration = duration + (i / 10);
+			Experiment newExp = new Experiment(name, lineNo, speedup, currDuration, basePtsHit + i);
+			experiments.add(newExp);
+		}
+		
+		return experiments;
 	}
 }
 
