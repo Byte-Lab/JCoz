@@ -1,3 +1,23 @@
+/*
+ * NOTICE
+ *
+ * Copyright (c) 2016 David C Vernet and Matthew J Perron. All rights reserved.
+ *
+ * Unless otherwise noted, all of the material in this file is Copyright (c) 2016
+ * by David C Vernet and Matthew J Perron. All rights reserved. No part of this file
+ * may be reproduced, published, distributed, displayed, performed, copied,
+ * stored, modified, transmitted or otherwise used or viewed by anyone other
+ * than the authors (David C Vernet and Matthew J Perron),
+ * for either public or private use.
+ *
+ * No part of this file may be modified, changed, exploited, or in any way
+ * used for derivative works or offered for sale without the express
+ * written permission of the authors.
+ *
+ * This file has been modified from lightweight-java-profiler
+ * (https://github.com/dcapwell/lightweight-java-profiler). See APACHE_LICENSE for
+ * a copy of the license that was included with that original work.
+ */
 package com.vernetperronllc.jcoz.client.ui;
 
 import java.util.ArrayList;
@@ -7,11 +27,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeMap;
 
 import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
 import com.vernetperronllc.jcoz.Experiment;
+import com.vernetperronllc.jcoz.ExperimentLinePartitioner;
 import com.vernetperronllc.jcoz.LineSpeedup;
+import com.vernetperronllc.jcoz.client.cli.RemoteServiceWrapper;
 import com.vernetperronllc.jcoz.client.cli.TargetProcessInterface;
 import com.vernetperronllc.jcoz.service.JCozException;
 import com.vernetperronllc.jcoz.service.VirtualMachineConnectionException;
@@ -48,9 +71,15 @@ public class VisualizeProfileScene {
 	private final Text processNameText = new Text();
 	
 	// Controls
-	private final TextField experimentLength = new TextField();
-	private final Button viewGraphButton = new Button();
+	private final Button stopProfilingButton = new Button("Stop profiling");
+	private final Button experimentsConsoleButton = new Button("Print experiments to console");
 	
+	// Visualization    
+    private final LineChart<Number,Number> lineChart;
+    private final Map<Integer, XYChart.Series<Number, Number>> seriesMap = new TreeMap<>();
+    Timer updateGraphTimer;
+    TimerTask updateGraphTask;
+    
 	TargetProcessInterface client;
 	
 	/** Disable constructor */
@@ -71,56 +100,40 @@ public class VisualizeProfileScene {
         this.grid.add(this.processNameText, 1, currRow);
         currRow++;
         
-        /*** Controls ***/
-        
-        // Experiment length text element
-        final Label lengthLabel = new Label("Experiment length:");
-        this.experimentLength.setText("50");
-        this.grid.add(lengthLabel, 0, currRow);
-        this.grid.add(this.experimentLength, 1, currRow);
-        currRow++;
+        /*** VISUALIZATION ***/
+        final NumberAxis xAxis = new NumberAxis();
+        final NumberAxis yAxis = new NumberAxis();
+        xAxis.setLabel("Line Speedup %");
+        yAxis.setLabel("Throughput improvement %");
+        this.lineChart = new LineChart<Number,Number>(xAxis,yAxis);
+        lineChart.setTitle("Speedup visualization");
+        grid.add(lineChart, 10, 0, 10, 10);
 
-        this.viewGraphButton.setText("View profile output");
-        this.viewGraphButton.setOnAction(new EventHandler<ActionEvent>() { 
+        /*** Controls ***/
+        this.experimentsConsoleButton.setOnAction(new EventHandler<ActionEvent>() { 
             @Override
             public void handle(ActionEvent event) {
-            	List<Experiment> experiments;
-				try {
-					experiments = client.getProfilerOutput();
-				} catch (JCozException e) {
-					System.err.println("Unable to get profiler experiment outputs");
-					e.printStackTrace();
-					return;
-				}
-                //defining the axes
-                final NumberAxis xAxis = new NumberAxis();
-                final NumberAxis yAxis = new NumberAxis();
-                xAxis.setLabel("Line Speedup %");
-                yAxis.setLabel("Throughput improvement %");
-                
-                //creating the chart
-                final LineChart<Number,Number> lineChart = 
-                        new LineChart<Number,Number>(xAxis,yAxis);
-                        
-                lineChart.setTitle("Line xy Speedup");
-                //defining a series
-                XYChart.Series series = new XYChart.Series();
-                series.setName("Line xy speedup");
-                //populating the series with data
-                LineSpeedup lineSpeedup = new LineSpeedup(experiments);
-                Map<Double, Double> speedups = lineSpeedup.getSpeedupMap();
-                for (double speedup : speedups.keySet()) {
-                	double speedupActual = speedups.get(speedup) / lineSpeedup.getBaselineSpeedup();
-                    series.getData().add(new XYChart.Data(speedup, speedupActual));
-                }
-                
-                Scene scene  = new Scene(lineChart,800,600);
-                lineChart.getData().add(series);
-                grid.add(lineChart, 0, 5, 10, 10);
+            	printExperimentsToConsole();
             }
         });
-        this.grid.add(this.viewGraphButton, 0, 10);
-        
+        this.grid.add(this.experimentsConsoleButton, 0, currRow++);
+        this.stopProfilingButton.setTooltip(new Tooltip("End profiling and choose a new process"));
+        this.stopProfilingButton.setOnAction(new EventHandler<ActionEvent>() { 
+            @Override
+            public void handle(ActionEvent event) {
+            	try {
+					client.endProfiling();
+				} catch (JCozException e) {
+					System.err.println("Unable to end profiling");
+					e.printStackTrace();
+				}
+            	updateGraphTimer.cancel();
+            	stage.setScene(PickProcessScene.getPickProcessScene(stage));
+            }
+        });
+        this.grid.add(this.stopProfilingButton, 0, currRow + 5);
+        currRow++;
+
         this.scene = new Scene(this.grid, 980, 600);
 	}
 	
@@ -128,17 +141,56 @@ public class VisualizeProfileScene {
 		return this.scene;
 	}
 	
-	public void setExperimentLength(int length) {
-		this.experimentLength.setText(length + "" );
-	}
-	
-	public int getExperimentLength() {
-		return Integer.parseInt(this.experimentLength.getText());
-	}
-	
 	private void setClient(TargetProcessInterface client) {
-		this.processNameText.setText("Profiling...");
+		this.processNameText.setText(client.toString());
 		this.client = client;
+	}
+	
+	/**
+	 * Update the currently displayed graph visualization.
+	 * This is currently called from a timer task in the
+	 * scene constructor.
+	 */
+	private void updateGraphVisualization() {
+    	List<Experiment> experiments;
+		try {
+			experiments = client.getProfilerOutput();
+		} catch (JCozException e) {
+			System.err.println("Unable to get profiler experiment outputs");
+			e.printStackTrace();
+			return;
+		}
+        //defining a series
+		List<LineSpeedup> lineSpeedups = ExperimentLinePartitioner.getLineSpeedups(experiments);
+		for (LineSpeedup speedup : lineSpeedups) {
+			int lineNo = speedup.getLineNo();
+			if (!seriesMap.containsKey(lineNo)) {
+				XYChart.Series<Number, Number> newSeries = new XYChart.Series<>();
+				newSeries.setName("Line #: " + lineNo);
+				seriesMap.put(lineNo, newSeries);
+				lineChart.getData().add(newSeries);
+			}
+			XYChart.Series<Number, Number> currSeries = seriesMap.get(lineNo);
+			speedup.renderSeries(currSeries);
+		}
+	}
+	
+	/**
+	 * Helper function for debugging. Prints all current experiments to the console.
+	 */
+	private void printExperimentsToConsole() {
+		try {
+			List<Experiment> experiments = client.getProfilerOutput();
+			System.out.println("Printing " + experiments.size() + " experiments...");
+			for (Experiment exp : experiments) {
+				System.out.println(exp);
+			}
+		} catch (JCozException e) {
+			System.err.println("Unable to get profiler experiment outputs");
+			e.printStackTrace();
+			return;
+		}
+
 	}
 	
 	public static Scene getVisualizeProfileScene(TargetProcessInterface client, Stage stage) {
@@ -146,25 +198,26 @@ public class VisualizeProfileScene {
 			VisualizeProfileScene.vpScene = new VisualizeProfileScene(stage);
 		}
 		vpScene.setClient(client);
+		vpScene.scheduleGraphUpdateTask();
 		return VisualizeProfileScene.vpScene.getScene();
 	}
-
-	public static List<Experiment> getTestExperiments() {
-		List<Experiment> experiments = new ArrayList<>();
-		
-		long duration = 100000L;
-		long basePtsHit = 50;
-		for (int i = 0; i < 1000; i++) {
-			String name = "Experiment_" + i;
-			int lineNo = 35;
-			
-			float speedup = (i / 50) * .05f;
-			long currDuration = duration + (i / 10);
-			Experiment newExp = new Experiment(name, lineNo, speedup, currDuration, basePtsHit + i);
-			experiments.add(newExp);
-		}
-		
-		return experiments;
+	
+	/**
+	 * Helper function for scheduling a graph visualization update task.
+	 * Note that we need to call this every time we render the scene or
+	 * the task would throw an exception because we're no longer profiling
+	 * once we leave this scene.
+	 */
+	private void scheduleGraphUpdateTask() {
+        // Schedule a task to update the graph every 5 seconds.
+        this.updateGraphTimer = new Timer("buttonEnable");
+        this.updateGraphTask = new TimerTask() {
+        	@Override
+        	public void run() {
+        		updateGraphVisualization();
+        	}
+        };
+		this.updateGraphTimer.schedule(vpScene.updateGraphTask, 1000, 5000);
 	}
 }
 
