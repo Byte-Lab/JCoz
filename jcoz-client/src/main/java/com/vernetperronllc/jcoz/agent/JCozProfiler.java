@@ -73,7 +73,7 @@ public class JCozProfiler implements JCozProfilerMBean {
 	/**
 	 * end experiments after 30 seconds without fetch
 	 */
-	public static long INACTIVITY_THRESHOLD = 10000;
+	public static long INACTIVITY_THRESHOLD = 30000;
 
 	/**
 	 * list of experiments run since last collected
@@ -94,6 +94,7 @@ public class JCozProfiler implements JCozProfilerMBean {
 			return JCozProfilingErrorCodes.NO_SCOPE_SET;
 		}
 		experimentRunning_ = true;
+		lastCollectionMillis = System.currentTimeMillis();
 		return startProfilingNative();
 	}
 
