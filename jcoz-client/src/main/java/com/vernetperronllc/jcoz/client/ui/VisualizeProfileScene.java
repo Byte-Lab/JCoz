@@ -84,7 +84,14 @@ public class VisualizeProfileScene {
         this.viewGraphButton.setOnAction(new EventHandler<ActionEvent>() { 
             @Override
             public void handle(ActionEvent event) {
-            	List<Experiment> experiments = VisualizeProfileScene.getTestExperiments();
+            	List<Experiment> experiments;
+				try {
+					experiments = client.getProfilerOutput();
+				} catch (JCozException e) {
+					System.err.println("Unable to get profiler experiment outputs");
+					e.printStackTrace();
+					return;
+				}
                 //defining the axes
                 final NumberAxis xAxis = new NumberAxis();
                 final NumberAxis yAxis = new NumberAxis();
@@ -130,7 +137,8 @@ public class VisualizeProfileScene {
 	}
 	
 	private void setClient(TargetProcessInterface client) {
-		this.processNameText.setText("Set descriptor name");
+		this.processNameText.setText("Profiling...");
+		this.client = client;
 	}
 	
 	public static Scene getVisualizeProfileScene(TargetProcessInterface client, Stage stage) {
