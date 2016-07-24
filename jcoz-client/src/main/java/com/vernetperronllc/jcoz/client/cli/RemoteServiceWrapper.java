@@ -38,9 +38,15 @@ import com.vernetperronllc.jcoz.service.JCozServiceInterface;
 public class RemoteServiceWrapper {
 
 	JCozServiceInterface service;
+	
+	private String host;
+	
+	private int port;
 
 	public RemoteServiceWrapper(String host, int port) throws JCozException {
 		try {
+			this.host = host;
+			this.port = port;
 			Registry reg = LocateRegistry.getRegistry(host, port);
 			service = (JCozServiceInterface) reg
 					.lookup(JCozService.SERVICE_NAME);
@@ -68,6 +74,14 @@ public class RemoteServiceWrapper {
 	
 	public TargetProcessInterface attachToProcess(int remotePid) throws JCozException{
 		return new RemoteProcessWrapper(service, remotePid);
+	}
+	
+	public String getHost() {
+		return this.host;
+	}
+	
+	public int getPort() {
+		return this.port;
 	}
 
 }
