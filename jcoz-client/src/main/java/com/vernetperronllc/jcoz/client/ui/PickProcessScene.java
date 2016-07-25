@@ -64,7 +64,7 @@ import javafx.util.converter.NumberStringConverter;
 
 public class PickProcessScene {
     
-	private static Map<String, VirtualMachineDescriptor> activeJCozVMs;
+	private static Map<String, VirtualMachineDescriptor> activeLocalJCozVMs;
 	
 	private static PickProcessScene ppScene = null;
 	
@@ -226,19 +226,21 @@ public class PickProcessScene {
                 try {
                     TargetProcessInterface profiledClient;
                     if (localRadio.isSelected()) {
-                    	// Do local profiling
+                    	VirtualMachineDescriptor descriptor = activeLocalJCozVMs.get(chosenProcess);
+                    	profiledClient = new LocalProcessWrapper(descriptor);
                     } else {
                     	int remotePid = getPidFromProcessString(chosenProcess);
                     	profiledClient = remoteService.attachToProcess(remotePid);
-	                    setClientParameters(profiledClient);
-	                    profiledClient.startProfiling();
-	                    
-	                    stage.setScene(VisualizeProfileScene.getVisualizeProfileScene(
-	                    		profiledClient,stage));
                     }
-                } catch (JCozException e) {
-                    System.err.println("A JCoz exception was thrown.");
-                    System.err.println(e);
+                    
+                    setClientParameters(profiledClient);
+                    profiledClient.startProfiling();
+                    
+                    stage.setScene(VisualizeProfileScene.getVisualizeProfileScene(
+                    		profiledClient,stage));
+                } catch (JCozException | VirtualMachineConnectionException e) {
+                    System.err.println("Unable to connect to target process.");
+                    e.printStackTrace();
                 }
             }
         });
@@ -313,7 +315,7 @@ public class PickProcessScene {
 	public VirtualMachineDescriptor getChosenVMDescriptor() {
 		String chosenProcess = this.vmList.getSelectionModel().getSelectedItem();
 		
-		return PickProcessScene.activeJCozVMs.get(chosenProcess);
+		return PickProcessScene.activeLocalJCozVMs.get(chosenProcess);
 	}
 	
 	public void setScope(String scope) {
@@ -347,13 +349,13 @@ public class PickProcessScene {
      *      should be queried for being profilable.
      */
     private static Map<String, VirtualMachineDescriptor> getLocalJCozVMList() {
-        PickProcessScene.activeJCozVMs = new HashMap<>();
+        PickProcessScene.activeLocalJCozVMs = new HashMap<>();
         List<VirtualMachineDescriptor> vmDescriptions = VirtualMachine.list();
         for(VirtualMachineDescriptor vmDesc : vmDescriptions){
-        	activeJCozVMs.put(vmDesc.displayName(), vmDesc);
+        	activeLocalJCozVMs.put(vmDesc.displayName(), vmDesc);
         }
         
-        return activeJCozVMs;
+        return activeLocalJCozVMs;
     }
 }
 
