@@ -23,8 +23,6 @@ package com.vernetperronllc.jcoz.client.ui;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.TreeMap;
 
 import com.vernetperronllc.jcoz.Experiment;
@@ -33,6 +31,9 @@ import com.vernetperronllc.jcoz.LineSpeedup;
 import com.vernetperronllc.jcoz.client.cli.TargetProcessInterface;
 import com.vernetperronllc.jcoz.service.JCozException;
 
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -48,103 +49,113 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 public class VisualizeProfileScene {
-    
+
 	private static VisualizeProfileScene vpScene = null;
-	
+
 	private final GridPane grid = new GridPane();
-	
+
 	private final Scene scene;
 
 	// Text elements
 	private final Text processNameText = new Text();
-	
+
 	// Controls
 	private final Button stopProfilingButton = new Button("Stop profiling");
 	private final Button experimentsConsoleButton = new Button("Print experiments to console");
-	
+
 	// Visualization    
-    private final LineChart<Number,Number> lineChart;
-    private final Map<Integer, XYChart.Series<Number, Number>> seriesMap = new TreeMap<>();
-    Timer updateGraphTimer;
-    TimerTask updateGraphTask;
-    List<Experiment> receivedExperiments = new ArrayList<>();
-    
+	private final LineChart<Number,Number> lineChart;
+	private final Map<Integer, XYChart.Series<Number, Number>> seriesMap = new TreeMap<>();
+	private final Timeline visualizationUpdateTimeline;
+	List<Experiment> receivedExperiments = new ArrayList<>();
+
 	TargetProcessInterface client;
-	
-	
-	
+
+
+
 	/** Disable constructor */
 	private VisualizeProfileScene(final Stage stage) {
 		// Set layout of grid
 		this.grid.setHgap(10);
-        this.grid.setVgap(10);
-        this.grid.setPadding(new Insets(25, 25, 25, 25));
+		this.grid.setVgap(10);
+		this.grid.setPadding(new Insets(25, 25, 25, 25));
 
-        final Text scenetitle = new Text("Profiling process");
-        scenetitle.setFont(Font.font("Tahoma", FontWeight.NORMAL, 20));
-        int currRow = 0;
-        this.grid.add(scenetitle, 0, currRow++, 2, 1);
-        
-        /*** Text elements ***/
-        final Label processNameLabel = new Label("Process name");
-        this.grid.add(processNameLabel, 0, currRow);
-        this.grid.add(this.processNameText, 1, currRow);
-        currRow++;
-        
-        /*** Controls ***/
-        this.experimentsConsoleButton.setOnAction(new EventHandler<ActionEvent>() { 
-            @Override
-            public void handle(ActionEvent event) {
-            	printExperimentsToConsole();
-            }
-        });
-        this.grid.add(this.experimentsConsoleButton, 0, currRow++);
-        this.stopProfilingButton.setTooltip(new Tooltip("End profiling and choose a new process"));
-        this.stopProfilingButton.setOnAction(new EventHandler<ActionEvent>() { 
-            @Override
-            public void handle(ActionEvent event) {
-            	try {
+		final Text scenetitle = new Text("Profiling process");
+		scenetitle.setFont(Font.font("Tahoma", FontWeight.NORMAL, 20));
+		int currRow = 0;
+		this.grid.add(scenetitle, 0, currRow++, 2, 1);
+
+		/*** Text elements ***/
+		final Label processNameLabel = new Label("Process name");
+		this.grid.add(processNameLabel, 0, currRow);
+		this.grid.add(this.processNameText, 1, currRow);
+		currRow++;
+
+		/*** Controls ***/
+		this.experimentsConsoleButton.setOnAction(new EventHandler<ActionEvent>() { 
+			@Override
+			public void handle(ActionEvent event) {
+				printExperimentsToConsole();
+			}
+		});
+		this.grid.add(this.experimentsConsoleButton, 0, currRow++);
+		this.stopProfilingButton.setTooltip(new Tooltip("End profiling and choose a new process"));
+		this.stopProfilingButton.setOnAction(new EventHandler<ActionEvent>() { 
+			@Override
+			public void handle(ActionEvent event) {
+				try {
+					visualizationUpdateTimeline.stop();
 					client.endProfiling();
 				} catch (JCozException e) {
 					System.err.println("Unable to end profiling");
 					e.printStackTrace();
 				}
-            	updateGraphTimer.cancel();
-            	stage.setScene(PickProcessScene.getPickProcessScene(stage));
-            }
-        });
-        this.grid.add(this.stopProfilingButton, 0, currRow);
-        currRow++;
+				stage.setScene(PickProcessScene.getPickProcessScene(stage));
+			}
+		});
+		this.grid.add(this.stopProfilingButton, 0, currRow);
+		currRow++;
 
-        /*** VISUALIZATION ***/
-        final NumberAxis xAxis = new NumberAxis();
-        final NumberAxis yAxis = new NumberAxis();
-        xAxis.setLabel("Line Speedup %");
-        yAxis.setLabel("Throughput improvement %");
-        this.lineChart = new LineChart<Number,Number>(xAxis,yAxis);
-        lineChart.setTitle("Speedup visualization");
-        grid.add(lineChart, 0, currRow++, 10, 10);
+		/*** VISUALIZATION ***/
+		final NumberAxis xAxis = new NumberAxis();
+		final NumberAxis yAxis = new NumberAxis();
+		xAxis.setLabel("Line Speedup %");
+		yAxis.setLabel("Throughput improvement %");
+		this.lineChart = new LineChart<Number,Number>(xAxis,yAxis);
+		lineChart.setTitle("Speedup visualization");
+		grid.add(lineChart, 0, currRow++, 10, 10);
 
-        this.scene = new Scene(this.grid, 980, 600);
+		visualizationUpdateTimeline = new Timeline(new KeyFrame(
+				Duration.millis(5000),
+				new EventHandler<ActionEvent>() { 
+					@Override
+					public void handle(ActionEvent event) {
+						updateGraphVisualization();
+					}
+				}));
+		visualizationUpdateTimeline.setCycleCount(Animation.INDEFINITE);
+
+		this.scene = new Scene(this.grid, 980, 600);
 	}
-	
+
 	public Scene getScene() {
 		return this.scene;
 	}
-	
+
 	private void setClient(TargetProcessInterface client) {
 		this.processNameText.setText(client.toString().trim());
 		this.client = client;
 	}
-	
+
 	/**
 	 * Update the currently displayed graph visualization.
 	 * This is currently called from a timer task in the
 	 * scene constructor.
 	 */
-	private void updateGraphVisualization() {
+	private synchronized void updateGraphVisualization() {
 		try {
 			this.pullNewExperiments();
 		} catch (JCozException e) {
@@ -152,7 +163,7 @@ public class VisualizeProfileScene {
 			e.printStackTrace();
 			return;
 		}
-        //defining a series
+		//defining a series
 		List<LineSpeedup> lineSpeedups = ExperimentLinePartitioner
 				.getLineSpeedups(this.receivedExperiments);
 		for (LineSpeedup speedup : lineSpeedups) {
@@ -167,17 +178,17 @@ public class VisualizeProfileScene {
 			speedup.renderSeries(currSeries);
 		}
 	}
-	
+
 	private void pullNewExperiments() throws JCozException {
 		for (Experiment exp : client.getProfilerOutput()) {
 			this.receivedExperiments.add(exp);
 		}
 	}
-	
+
 	/**
 	 * Helper function for debugging. Prints all current experiments to the console.
 	 */
-	private void printExperimentsToConsole() {
+	private synchronized void printExperimentsToConsole() {
 		try {
 			this.pullNewExperiments();
 			System.out.println("Printing " + this.receivedExperiments.size() + " experiments...");
@@ -191,32 +202,14 @@ public class VisualizeProfileScene {
 		}
 
 	}
-	
+
 	public static Scene getVisualizeProfileScene(TargetProcessInterface client, Stage stage) {
 		if (VisualizeProfileScene.vpScene == null) {
 			VisualizeProfileScene.vpScene = new VisualizeProfileScene(stage);
 		}
 		vpScene.setClient(client);
-		vpScene.scheduleGraphUpdateTask();
+		vpScene.visualizationUpdateTimeline.play();
 		return VisualizeProfileScene.vpScene.getScene();
-	}
-	
-	/**
-	 * Helper function for scheduling a graph visualization update task.
-	 * Note that we need to call this every time we render the scene or
-	 * the task would throw an exception because we're no longer profiling
-	 * once we leave this scene.
-	 */
-	private void scheduleGraphUpdateTask() {
-        // Schedule a task to update the graph every 5 seconds.
-        this.updateGraphTimer = new Timer("buttonEnable");
-        this.updateGraphTask = new TimerTask() {
-        	@Override
-        	public void run() {
-        		updateGraphVisualization();
-        	}
-        };
-		this.updateGraphTimer.schedule(vpScene.updateGraphTask, 1000, 5000);
 	}
 }
 
