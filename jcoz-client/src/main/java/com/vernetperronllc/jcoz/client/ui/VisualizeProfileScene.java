@@ -100,15 +100,6 @@ public class VisualizeProfileScene {
         this.grid.add(this.processNameText, 1, currRow);
         currRow++;
         
-        /*** VISUALIZATION ***/
-        final NumberAxis xAxis = new NumberAxis();
-        final NumberAxis yAxis = new NumberAxis();
-        xAxis.setLabel("Line Speedup %");
-        yAxis.setLabel("Throughput improvement %");
-        this.lineChart = new LineChart<Number,Number>(xAxis,yAxis);
-        lineChart.setTitle("Speedup visualization");
-        grid.add(lineChart, 10, 0, 10, 10);
-
         /*** Controls ***/
         this.experimentsConsoleButton.setOnAction(new EventHandler<ActionEvent>() { 
             @Override
@@ -131,8 +122,17 @@ public class VisualizeProfileScene {
             	stage.setScene(PickProcessScene.getPickProcessScene(stage));
             }
         });
-        this.grid.add(this.stopProfilingButton, 0, currRow + 5);
+        this.grid.add(this.stopProfilingButton, 0, currRow);
         currRow++;
+
+        /*** VISUALIZATION ***/
+        final NumberAxis xAxis = new NumberAxis();
+        final NumberAxis yAxis = new NumberAxis();
+        xAxis.setLabel("Line Speedup %");
+        yAxis.setLabel("Throughput improvement %");
+        this.lineChart = new LineChart<Number,Number>(xAxis,yAxis);
+        lineChart.setTitle("Speedup visualization");
+        grid.add(lineChart, 0, currRow++, 10, 10);
 
         this.scene = new Scene(this.grid, 980, 600);
 	}
@@ -142,7 +142,7 @@ public class VisualizeProfileScene {
 	}
 	
 	private void setClient(TargetProcessInterface client) {
-		this.processNameText.setText(client.toString());
+		this.processNameText.setText(client.toString().trim());
 		this.client = client;
 	}
 	
