@@ -21,26 +21,18 @@
 package com.vernetperronllc.jcoz.client.ui;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeMap;
 
-import com.sun.tools.attach.VirtualMachine;
-import com.sun.tools.attach.VirtualMachineDescriptor;
 import com.vernetperronllc.jcoz.Experiment;
 import com.vernetperronllc.jcoz.ExperimentLinePartitioner;
 import com.vernetperronllc.jcoz.LineSpeedup;
-import com.vernetperronllc.jcoz.client.cli.RemoteServiceWrapper;
 import com.vernetperronllc.jcoz.client.cli.TargetProcessInterface;
 import com.vernetperronllc.jcoz.service.JCozException;
-import com.vernetperronllc.jcoz.service.VirtualMachineConnectionException;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -50,8 +42,6 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
@@ -79,8 +69,11 @@ public class VisualizeProfileScene {
     private final Map<Integer, XYChart.Series<Number, Number>> seriesMap = new TreeMap<>();
     Timer updateGraphTimer;
     TimerTask updateGraphTask;
+    List<Experiment> receivedExperiments = new ArrayList<>();
     
 	TargetProcessInterface client;
+	
+	
 	
 	/** Disable constructor */
 	private VisualizeProfileScene(final Stage stage) {
@@ -152,16 +145,16 @@ public class VisualizeProfileScene {
 	 * scene constructor.
 	 */
 	private void updateGraphVisualization() {
-    	List<Experiment> experiments;
 		try {
-			experiments = client.getProfilerOutput();
+			this.pullNewExperiments();
 		} catch (JCozException e) {
 			System.err.println("Unable to get profiler experiment outputs");
 			e.printStackTrace();
 			return;
 		}
         //defining a series
-		List<LineSpeedup> lineSpeedups = ExperimentLinePartitioner.getLineSpeedups(experiments);
+		List<LineSpeedup> lineSpeedups = ExperimentLinePartitioner
+				.getLineSpeedups(this.receivedExperiments);
 		for (LineSpeedup speedup : lineSpeedups) {
 			int lineNo = speedup.getLineNo();
 			if (!seriesMap.containsKey(lineNo)) {
@@ -175,14 +168,20 @@ public class VisualizeProfileScene {
 		}
 	}
 	
+	private void pullNewExperiments() throws JCozException {
+		for (Experiment exp : client.getProfilerOutput()) {
+			this.receivedExperiments.add(exp);
+		}
+	}
+	
 	/**
 	 * Helper function for debugging. Prints all current experiments to the console.
 	 */
 	private void printExperimentsToConsole() {
 		try {
-			List<Experiment> experiments = client.getProfilerOutput();
-			System.out.println("Printing " + experiments.size() + " experiments...");
-			for (Experiment exp : experiments) {
+			this.pullNewExperiments();
+			System.out.println("Printing " + this.receivedExperiments.size() + " experiments...");
+			for (Experiment exp : this.receivedExperiments) {
 				System.out.println(exp);
 			}
 		} catch (JCozException e) {
