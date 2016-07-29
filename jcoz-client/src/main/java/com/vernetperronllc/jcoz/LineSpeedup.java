@@ -64,8 +64,8 @@ public class LineSpeedup {
 			if (speedup == 0) {
 				this.speedupMap.put((double)speedup, 0.0);
 			} else {
-				double actualSpeedup = ((double)totalDuration / (double)pointsHit)
-						/ this.baselineSpeedup;
+				double preBaseSpeedup = (double)totalDuration / (double)pointsHit;
+				double actualSpeedup = (this.baselineSpeedup - preBaseSpeedup) / this.baselineSpeedup;
 				this.speedupMap.put((double)speedup, actualSpeedup);
 			}
 		}
