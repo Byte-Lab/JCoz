@@ -103,6 +103,22 @@ public class PickProcessScene {
         int currRow = 1;
         
         // LOCAL OR REMOTE
+        currRow = this.setUpLocalOrRemoteSection(currRow);
+
+        // VM LIST
+        currRow = this.setUpVMListSection(currRow);
+        
+        // PROFILE CONFIGURATION
+        currRow = this.setUpProfileConfigurationSection(currRow);
+
+        // START PROFILING PROCESS
+        this.setUpStartProfilingSection(currRow, stage);
+        
+        
+        this.scene = new Scene(this.grid, 980, 600);
+	}
+	
+	private final int setUpLocalOrRemoteSection(int currRow) {
         localRadio.setToggleGroup(this.localRemoteGroup);
         remoteRadio.setToggleGroup(this.localRemoteGroup);
         localRadio.setSelected(true);
@@ -154,8 +170,16 @@ public class PickProcessScene {
 		        }
             }
         });
-
-        // VM LIST
+        
+        return currRow;
+	}
+	
+	/**
+	 * Set up the section where the list of available VMs are displayed.
+	 * @param currRow The row where the list should be placed.
+	 * @return Next available row after setting scene section.
+	 */
+	private int setUpVMListSection(int currRow) {
         this.updateLocalVMList();
         this.vmList.setPrefWidth(100);
         this.vmList.setPrefHeight(70);
@@ -176,7 +200,51 @@ public class PickProcessScene {
         	}
         };
         vmListUpdateTimer.schedule(vmListUpdateTimerTask, 0, 2000);
+
+        this.grid.add(this.vmList, 0, currRow, 5, 1);
+        currRow++;
+
+        return currRow;
+	}
+	
+	/**
+	 * Set up the section where the list of profile configuration options
+	 * are placed.
+	 * @param currRow The row where the configuration options should start.
+	 * @return Next available row after setting scene section.
+	 */
+	private int setUpProfileConfigurationSection(int currRow) {
+        // Scope text element.
+        final Label packageLabel = new Label("Profiling scope (package):");
+        this.grid.add(packageLabel, 0, currRow);
+        this.grid.add(this.scope, 1, currRow);
         
+        // Class text element.
+        final Label classLabel = new Label("Profiling class:");
+        this.grid.add(classLabel, 3, currRow);
+        this.grid.add(this.klass, 4, currRow);
+        currRow++;
+
+        // Progress point element.
+        final Label lineNumberLabel = new Label("Line number:");
+        this.grid.add(lineNumberLabel, 0, currRow);
+        this.lineNumber.setTextFormatter(
+        		new TextFormatter<>(new NumberStringConverter()));
+        this.grid.add(this.lineNumber, 1, currRow);
+        currRow++;
+        
+        return currRow;
+	}
+
+	/**
+	 * Set up the section where the start profiling button is displayed. This
+	 * also includes the logic for what should get fired when the start profiling
+	 * button is fired.
+	 * @param currRow The row where the start profiling button should be placed.
+	 * @return Next available row after setting scene section.
+	 */
+	private int setUpStartProfilingSection(int currRow, final Stage stage) {
+		// Listener for enabling the profile process button
         Timer buttonEnableTimer = new Timer("buttonEnable");
         TimerTask buttonUpdateTask = new TimerTask() {
         	@Override
@@ -194,28 +262,6 @@ public class PickProcessScene {
         	}
         };
         buttonEnableTimer.schedule(buttonUpdateTask, 0, 100);
-
-        this.grid.add(this.vmList, 0, currRow, 5, 1);
-        currRow++;
-        
-        // Scope text element.
-        final Label packageLabel = new Label("Profiling scope (package):");
-        this.grid.add(packageLabel, 0, currRow);
-        this.grid.add(this.scope, 1, currRow);
-        
-        // Scope text element.
-        final Label classLabel = new Label("Profiling class:");
-        this.grid.add(classLabel, 3, currRow);
-        this.grid.add(this.klass, 4, currRow);
-        currRow++;
-
-        // Progress point element.
-        final Label lineNumberLabel = new Label("Line number:");
-        this.grid.add(lineNumberLabel, 0, currRow);
-        this.lineNumber.setTextFormatter(
-        		new TextFormatter<>(new NumberStringConverter()));
-        this.grid.add(this.lineNumber, 1, currRow);
-        currRow++;
 
         this.profileProcessBtn.setText("Profile process");
         this.profileProcessBtn.setDisable(true);
@@ -246,7 +292,7 @@ public class PickProcessScene {
         });
         this.grid.add(this.profileProcessBtn, 0, 10);
         
-        this.scene = new Scene(this.grid, 980, 600);
+        return currRow;
 	}
 	
 	/**

@@ -73,9 +73,9 @@ public class VisualizeProfileScene {
 	private final Button experimentsConsoleButton = new Button("Print experiments to console");
 
 	// Visualization    
-	private final LineChart<Number,Number> lineChart;
+	private LineChart<Number,Number> lineChart;
 	private final Map<Integer, XYChart.Series<Number, Number>> seriesMap = new TreeMap<>();
-	private final Timeline visualizationUpdateTimeline;
+	private Timeline visualizationUpdateTimeline;
 	List<Experiment> receivedExperiments = new ArrayList<>();
 	
 	// Logging
@@ -129,6 +129,17 @@ public class VisualizeProfileScene {
 		currRow++;
 
 		/*** VISUALIZATION ***/
+		this.setUpVisualizationSection(currRow);
+
+		this.scene = new Scene(this.grid, 980, 600);
+	}
+	
+	/**
+	 * Set up the chart /visualization section of the VisualizeProfileScene
+	 * @param currRow The row where the chart should be placed.
+	 * @return Next available row after setting scene section.
+	 */
+	private int setUpVisualizationSection(int currRow) {
 		final NumberAxis xAxis = new NumberAxis();
 		final NumberAxis yAxis = new NumberAxis();
 		xAxis.setLabel("Line Speedup %");
@@ -146,8 +157,6 @@ public class VisualizeProfileScene {
 					}
 				}));
 		visualizationUpdateTimeline.setCycleCount(Animation.INDEFINITE);
-
-		this.scene = new Scene(this.grid, 980, 600);
 		
 		File profile = new File(VisualizeProfileScene.PROFILE_NAME);
 		try {
@@ -158,6 +167,8 @@ public class VisualizeProfileScene {
 			System.err.println("Unable to create profile output file or read profile output from file");
 			e.printStackTrace();
 		}
+		
+		return currRow;
 	}
 
 	public Scene getScene() {

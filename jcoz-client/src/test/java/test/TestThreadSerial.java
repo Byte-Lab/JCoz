@@ -22,8 +22,8 @@ import java.util.ArrayList;
 
 public class TestThreadSerial {
 
-	public static final long LOOP_ITERS = 1000000L;
-	public static final int numThreads = 32;
+	public static final long LOOP_ITERS = 3000000L;
+	public static final int numThreads = 8;
 	public static ExecutorService executor = Executors
 			.newFixedThreadPool(numThreads);
 	public static ArrayList<Callable<Void>> threads = new ArrayList<>();
