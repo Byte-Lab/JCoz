@@ -59,15 +59,11 @@ public class LineSpeedup {
 			long pointsHit = 0;
 			for (Experiment exp : speedups.get(speedup)) {
 				pointsHit += exp.getPointsHit();
-				totalDuration = exp.getDuration();
+				totalDuration += exp.getDuration();
 			}
-			if (speedup == 0) {
-				this.speedupMap.put((double)speedup, 0.0);
-			} else {
-				double preBaseSpeedup = (double)totalDuration / (double)pointsHit;
-				double actualSpeedup = (this.baselineSpeedup - preBaseSpeedup) / this.baselineSpeedup;
-				this.speedupMap.put((double)speedup, actualSpeedup);
-			}
+			double preBaseSpeedup = (double)totalDuration / (double)pointsHit;
+			double actualSpeedup = (this.baselineSpeedup - preBaseSpeedup) / this.baselineSpeedup;
+			this.speedupMap.put((double)speedup, actualSpeedup);
 		}
 	}
 	

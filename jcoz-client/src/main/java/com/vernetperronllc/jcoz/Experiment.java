@@ -51,6 +51,29 @@ public class Experiment implements Comparable<Experiment> {
 	}
 	
 	/**
+	 * Create an experiment object from a coz string in the form
+	 * returned by Experiment.toString().
+	 * @param cozFormatExperiment
+	 */
+	public Experiment (String exp) {
+		int selectedIndex = exp.indexOf("selected=");
+		int lineNoIndex = exp.indexOf(':', selectedIndex);
+		int speedupIndex = exp.indexOf("\tspeedup=");
+		int durationIndex = exp.indexOf("\tduration=");
+		int firstLineEndIndex = exp.indexOf('\n');
+		int pointsHitIndex = exp.indexOf("\tdelta=");
+		
+		this.classSig = exp.substring(selectedIndex + ("selected=").length(), lineNoIndex);
+		this.lineNo = Integer.parseInt(exp.substring(lineNoIndex + 1, speedupIndex));
+		this.speedup = Float.parseFloat(
+				exp.substring(speedupIndex + "\tspeedup=".length(), durationIndex));
+		this.duration = Long.parseLong(
+				exp.substring(durationIndex + "\tduration=".length(), firstLineEndIndex));
+		this.pointsHit = Long.parseLong(
+				exp.substring(pointsHitIndex + "\tdelta=".length()));
+	}
+	
+	/**
 	 * experiment class signature
 	 */
 	private String classSig;

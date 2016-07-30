@@ -20,6 +20,10 @@
  */
 package com.vernetperronllc.jcoz.client.ui;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +57,8 @@ import javafx.util.Duration;
 
 public class VisualizeProfileScene {
 
+	private static String PROFILE_NAME = "profile.coz";
+	
 	private static VisualizeProfileScene vpScene = null;
 
 	private final GridPane grid = new GridPane();
@@ -71,6 +77,9 @@ public class VisualizeProfileScene {
 	private final Map<Integer, XYChart.Series<Number, Number>> seriesMap = new TreeMap<>();
 	private final Timeline visualizationUpdateTimeline;
 	List<Experiment> receivedExperiments = new ArrayList<>();
+	
+	// Logging
+	RandomAccessFile profStream;
 
 	TargetProcessInterface client;
 
@@ -139,6 +148,16 @@ public class VisualizeProfileScene {
 		visualizationUpdateTimeline.setCycleCount(Animation.INDEFINITE);
 
 		this.scene = new Scene(this.grid, 980, 600);
+		
+		File profile = new File(VisualizeProfileScene.PROFILE_NAME);
+		try {
+			this.profStream = new RandomAccessFile(profile, "rw");
+			this.readExperimentsFromProfileFile();
+			this.renderLineSpeedups();
+		} catch (IOException e) {
+			System.err.println("Unable to create profile output file or read profile output from file");
+			e.printStackTrace();
+		}
 	}
 
 	public Scene getScene() {
@@ -163,26 +182,63 @@ public class VisualizeProfileScene {
 			e.printStackTrace();
 			return;
 		}
-		//defining a series
+
+		this.renderLineSpeedups();
+	}
+	
+	/**
+	 * Render the line speedups for the current set of received experiments.
+	 */
+	private void renderLineSpeedups() {
 		List<LineSpeedup> lineSpeedups = ExperimentLinePartitioner
 				.getLineSpeedups(this.receivedExperiments);
 		for (LineSpeedup speedup : lineSpeedups) {
 			int lineNo = speedup.getLineNo();
-			if (!seriesMap.containsKey(lineNo)) {
+			if (!this.seriesMap.containsKey(lineNo)) {
 				XYChart.Series<Number, Number> newSeries = new XYChart.Series<>();
 				newSeries.setName("Line #: " + lineNo);
-				seriesMap.put(lineNo, newSeries);
+				this.seriesMap.put(lineNo, newSeries);
 				lineChart.getData().add(newSeries);
 			}
-			XYChart.Series<Number, Number> currSeries = seriesMap.get(lineNo);
+			XYChart.Series<Number, Number> currSeries = this.seriesMap.get(lineNo);
 			speedup.renderSeries(currSeries);
+		}
+	}
+	
+	/**
+	 * Read all of the experiments already contained in a profile output.
+	 * @throws IOException
+	 */
+	private void readExperimentsFromProfileFile() throws IOException {
+		// Iterate through every line in the file, and add 
+		while (this.profStream.getFilePointer() != this.profStream.length()) {
+			String line1 = this.profStream.readLine();
+			String line2 = this.profStream.readLine();
+			this.receivedExperiments.add(new Experiment(line1 + "\n" + line2));
 		}
 	}
 
 	private void pullNewExperiments() throws JCozException {
-		for (Experiment exp : client.getProfilerOutput()) {
+		List<Experiment> experiments = client.getProfilerOutput();
+		for (Experiment exp : experiments) {
 			this.receivedExperiments.add(exp);
 		}
+		
+		try {
+			this.flushNewExperiments(experiments);
+		} catch (IOException e) {
+			System.err.println("Unable to flush profile output for experiments");
+			e.printStackTrace();
+		}
+	}
+	
+	private void flushNewExperiments(List<Experiment> experiments) throws IOException {
+		StringBuffer profText = new StringBuffer();
+		for (Experiment exp : experiments) {
+			profText.append(exp.toString() + "\n");
+		}
+		
+		this.profStream.writeBytes(profText.toString());
 	}
 
 	/**
