@@ -217,7 +217,7 @@ class Profiler {
 
   static bool prof_ready;
 
-  static bool slow_exp;
+  static bool fix_exp;
 };
 
 #endif  // PROFILER_H

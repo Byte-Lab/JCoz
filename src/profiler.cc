@@ -93,7 +93,7 @@ std::string Profiler::progress_class;
 static std::atomic<int> call_index(0);
 static JVMPI_CallFrame static_call_frames[200];
 
-bool Profiler::slow_exp = false;
+bool Profiler::fix_exp = false;
 
 nanoseconds_type startup_time;
 
@@ -175,8 +175,8 @@ void Profiler::ParseOptions(const char *options) {
         } else if (option == "warmup") {
             // We expect # of milliseconds so multiply by 1000 for usleep (takes microseconds)
             warmup_time = std::stol(value) * 1000;
-        } else if (option == "slow-exp" ) {
-            slow_exp = true;
+        } else if (option == "fix-exp" ) {
+            fix_exp = true;
         }
     }
 
@@ -303,10 +303,14 @@ void Profiler::runExperiment(JNIEnv * jni_env) {
     jni_env->DeleteLocalRef(javaSig);
 
     // printf("Total experiment delay: %ld, total duration: %ld\n", current_experiment.delay, current_experiment.duration);
-    if( slow_exp && (current_experiment.points_hit <= 5) ) {
-        experiment_time *= 2;
-    } else if( slow_exp && (current_experiment.points_hit >= 20) ) {
-        experiment_time /= 2;
+
+    // Maybe update the experiment length
+    if (!fix_exp) {
+        if( current_experiment.points_hit <= 5 ) {
+            experiment_time *= 2;
+        } else if( current_experiment.points_hit >= 20 ) {
+            experiment_time /= 2;
+        }
     }
 
 	delete[] current_experiment.location_ranges;
