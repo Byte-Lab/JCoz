@@ -21,8 +21,6 @@
 package com.vernetperronllc.jcoz.profile;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +28,6 @@ import java.util.Map;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.chart.XYChart;
-import javafx.scene.chart.XYChart.Data;
 
 /**
  * An object containing speedup information for a single line in a com.vernetperronllc.jcoz.profile.

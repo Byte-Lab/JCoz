@@ -24,7 +24,6 @@ package com.vernetperronllc.jcoz.profile;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.Comparator;
 
 /**
  * Simple bean which represents a single experiment
