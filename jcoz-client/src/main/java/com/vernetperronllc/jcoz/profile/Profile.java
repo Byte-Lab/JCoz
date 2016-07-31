@@ -29,11 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.vernetperronllc.jcoz.client.ui.VisualizeProfileScene;
-
-import javafx.scene.Node;
 import javafx.scene.chart.LineChart;
-import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 
 /**
@@ -54,10 +50,10 @@ public class Profile {
 	
 	private final Map<Integer, XYChart.Series<Number, Number>> seriesMap = new TreeMap<>();
 		
-	public Profile(String process) {
+	public Profile(String process, LineChart<Number,Number> lineChart) {
 		this.process = process;
 		
-		this.createLineChart();
+		this.lineChart = lineChart;
 		
 		this.initializeProfileLogging();	
 	}
@@ -133,6 +129,21 @@ public class Profile {
 	}
 
 	/**
+	 * Flush all pending experiments to the profile and
+	 * close the open file reader/writer.
+	 * @param experiments Pending experiments to be written.
+	 */
+	public void flushAndCloseLog(List<Experiment> experiments) {
+		try {
+			this.flushExperimentsToCozFile(experiments);
+			this.stream.close();
+		} catch (IOException e) {
+			System.err.println("Unable to flush and close stream");
+			e.printStackTrace();
+		}
+	}
+
+	/**
 	 * Append a list of experiments to the current coz file.
 	 * @param experiments
 	 * @throws IOException
@@ -144,24 +155,6 @@ public class Profile {
 		}
 		
 		this.stream.writeBytes(profText.toString());
-	}
-
-	/**
-	 * Create the visualization chart for this com.vernetperronllc.jcoz.profile.
-	 */
-	private void createLineChart() {
-		final NumberAxis xAxis = new NumberAxis();
-		xAxis.setLabel("Line Speedup %");
-		xAxis.setUpperBound(1.0);
-		xAxis.setLowerBound(0.0);
-
-		final NumberAxis yAxis = new NumberAxis();
-		yAxis.setLabel("Throughput improvement %");
-		yAxis.setUpperBound(1.0);
-		yAxis.setLowerBound(-1.0);
-		
-		this.lineChart = new LineChart<Number,Number>(xAxis,yAxis);
-		lineChart.setTitle("Speedup visualization");
 	}
 	
 	/**

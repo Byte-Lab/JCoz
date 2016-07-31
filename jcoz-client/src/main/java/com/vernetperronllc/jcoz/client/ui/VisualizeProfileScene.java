@@ -20,18 +20,10 @@
  */
 package com.vernetperronllc.jcoz.client.ui;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 import com.vernetperronllc.jcoz.client.cli.TargetProcessInterface;
 import com.vernetperronllc.jcoz.profile.Experiment;
-import com.vernetperronllc.jcoz.profile.LineSpeedup;
 import com.vernetperronllc.jcoz.profile.Profile;
 import com.vernetperronllc.jcoz.service.JCozException;
 
@@ -44,7 +36,6 @@ import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
@@ -57,8 +48,6 @@ import javafx.util.Duration;
 
 public class VisualizeProfileScene {
 
-	private static String PROFILE_NAME = "com.vernetperronllc.jcoz.profile.coz";
-	
 	private static VisualizeProfileScene vpScene = null;
 
 	private final GridPane grid = new GridPane();
@@ -74,7 +63,7 @@ public class VisualizeProfileScene {
 
 	// Visualization    
 	private Timeline visualizationUpdateTimeline;
-	int chartRow;
+	private LineChart<Number,Number> lineChart;
 	
 	// Profile
 	Profile profile;
@@ -115,6 +104,7 @@ public class VisualizeProfileScene {
 			public void handle(ActionEvent event) {
 				try {
 					visualizationUpdateTimeline.stop();
+					profile.flushAndCloseLog(client.getProfilerOutput());
 					client.endProfiling();
 				} catch (JCozException e) {
 					System.err.println("Unable to end profiling");
@@ -128,7 +118,6 @@ public class VisualizeProfileScene {
 
 		/*** VISUALIZATION ***/
 		currRow = this.setUpVisualizationSection(currRow);
-		this.chartRow = currRow;
 
 		this.scene = new Scene(this.grid, 980, 600);
 	}
@@ -149,6 +138,23 @@ public class VisualizeProfileScene {
 				}));
 		visualizationUpdateTimeline.setCycleCount(Animation.INDEFINITE);
 				
+		
+		final NumberAxis xAxis = new NumberAxis();
+		xAxis.setLabel("Line Speedup %");
+		xAxis.setUpperBound(1.0);
+		xAxis.setLowerBound(0.0);
+
+		final NumberAxis yAxis = new NumberAxis();
+		yAxis.setLabel("Throughput improvement %");
+		yAxis.setUpperBound(1.0);
+		yAxis.setLowerBound(-1.0);
+		
+		this.lineChart = new LineChart<Number,Number>(xAxis,yAxis);
+		lineChart.setTitle("Speedup visualization");
+
+		this.grid.add(this.lineChart, 0, currRow, 10, 10);
+		currRow += 10;
+
 		return currRow;
 	}
 
@@ -157,11 +163,10 @@ public class VisualizeProfileScene {
 	}
 
 	private void setClient(TargetProcessInterface client, String processName) {
-		this.profile = new Profile(processName);
+		this.lineChart.getData().clear();
+		this.profile = new Profile(processName, this.lineChart);
 		this.processNameText.setText(profile.getProcess());
 		this.client = client;
-		
-		this.grid.add(this.profile.getLineChart(), 0, this.chartRow, 10, 10);
 	}
 
 	/**
