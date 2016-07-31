@@ -22,13 +22,31 @@ import java.util.ArrayList;
 
 public class TestThreadSerial {
 
-	public static final long LOOP_ITERS = 3000000L;
+	public static long LOOP_ITERS = 50000000L;
 	public static final int numThreads = 8;
 	public static ExecutorService executor = Executors
 			.newFixedThreadPool(numThreads);
 	public static ArrayList<Callable<Void>> threads = new ArrayList<>();
 
 	public static void main(String[] args) throws InterruptedException {
+        if (args.length > 0) {
+            switch (args[0]) {
+                case "--fast":
+                case "-s":
+                    LOOP_ITERS = 1000000L;
+                    break;
+
+                case "-h":
+                case "--help":
+                    System.out.println("usage: java test.TestThreadSerial [--fast|-s]");
+                    System.exit(0);
+                
+                default:
+                    LOOP_ITERS = 50000000L;
+                    break;
+            }
+        }
+
 		for (int i = 0; i < numThreads; i++) 
 			threads.add(new ParallelWorker());
 		
