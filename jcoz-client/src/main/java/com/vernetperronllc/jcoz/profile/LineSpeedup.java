@@ -18,9 +18,10 @@
  * (https://github.com/dcapwell/lightweight-java-profiler). See APACHE_LICENSE for
  * a copy of the license that was included with that original work.
  */
-package com.vernetperronllc.jcoz;
+package com.vernetperronllc.jcoz.profile;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -32,13 +33,13 @@ import javafx.scene.chart.XYChart;
 import javafx.scene.chart.XYChart.Data;
 
 /**
- * An object containing speedup information for a single line in a profile.
+ * An object containing speedup information for a single line in a com.vernetperronllc.jcoz.profile.
  * @author David
  */
 public class LineSpeedup {
 	double baselineSpeedup;
 	
-	List<Experiment> experiments = new ArrayList<Experiment>();
+	List<Experiment> experiments;
 	
 	Map<Double, Double> speedupMap = new HashMap<>();
 	
@@ -49,8 +50,40 @@ public class LineSpeedup {
 		this.experiments = new ArrayList<Experiment>(experiments);
 		
 		this.lineNo = lineNo;
+	
+		this.updateSpeedupMap();
+	}
+	
+	public LineSpeedup(Experiment exp) {
+		this.experiments = new ArrayList<Experiment>();
+		this.experiments.add(exp);
 		
+		this.lineNo = exp.getLineNo();
+	}
+
+	public Map<Double, Double> getSpeedupMap() {
+		return this.speedupMap;
+	}
+	
+	public double getBaselineSpeedup() {
+		return this.baselineSpeedup;
+	}
+	
+	public int getLineNo() {
+		return this.lineNo;
+	}
+	
+	public void addExperiment(Experiment exp) {
+		this.experiments.add(exp);
+	}
+	
+	/**
+	 * Update the speedup map to use the latest experiment data.
+	 * @throws InsufficientBaselineResultsException
+	 */
+	private void updateSpeedupMap() throws InsufficientBaselineResultsException {
 		this.baselineSpeedup = this.calculateBaselineSpeedup();
+		this.speedupMap.clear();
 		
 		Map<Float, List<Experiment>> speedups = this.groupExperimentsBySpeedups();
 		
@@ -67,18 +100,11 @@ public class LineSpeedup {
 		}
 	}
 	
-	public Map<Double, Double> getSpeedupMap() {
-		return this.speedupMap;
-	}
-	
-	public double getBaselineSpeedup() {
-		return this.baselineSpeedup;
-	}
-	
-	public int getLineNo() {
-		return this.lineNo;
-	}
-	
+	/**
+	 * Calculate the baseline speedup from the latest experiment data.
+	 * @return The new baseline speedup.
+	 * @throws InsufficientBaselineResultsException
+	 */
 	private double calculateBaselineSpeedup() throws InsufficientBaselineResultsException {
 		double baselineDuration = 0;
 		double baselinePointsHit = 0;
@@ -94,9 +120,13 @@ public class LineSpeedup {
 			throw new InsufficientBaselineResultsException(
 					"Insufficient baseline results. Expected at least 5, found: " + baselinePointsHit);
 		}
-		return (double)baselineDuration / (double)baselinePointsHit;
+		return baselineDuration / baselinePointsHit;
 	}
 	
+	/**
+	 * Group the list of experiments into a separate list by speedup.
+	 * @return
+	 */
 	private Map<Float, List<Experiment>> groupExperimentsBySpeedups() {
 		Map<Float, List<Experiment>> partitionedExperiments = new HashMap<>();
 		for (Experiment exp : this.experiments) {
@@ -126,11 +156,14 @@ public class LineSpeedup {
 	 * Given a series to be displayed on a chart, render all of the data points
 	 * corresponding to speedup values for this LineSpeedup object.
 	 * @param series The series in which to render this LineSpeedup's data points. 
+	 * @throws InsufficientBaselineResultsException 
 	 */
-	public void renderSeries(XYChart.Series<Number, Number> series) {
+	public void renderSeries(XYChart.Series<Number, Number> series) throws InsufficientBaselineResultsException {
         //populating the series with data
 		List<XYChart.Data<Number, Number>> speedupList = new ArrayList<>();
 
+		this.updateSpeedupMap();
+		
 		// Populate list with data points. 
         for (double speedup : speedupMap.keySet()) {
             speedupList.add(new XYChart.Data<Number, Number>(speedup, speedupMap.get(speedup)));
@@ -140,5 +173,9 @@ public class LineSpeedup {
         ObservableList<XYChart.Data<Number, Number>> dataPoints =
         		FXCollections.observableList(speedupList);
         series.setData(dataPoints);
+	}
+
+	public List<Experiment> getExperiments() {
+		return this.experiments;
 	}
 }

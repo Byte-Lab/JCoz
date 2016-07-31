@@ -23,10 +23,10 @@ package test;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
-import com.vernetperronllc.jcoz.Experiment;
 import com.vernetperronllc.jcoz.JCozVMDescriptor;
 import com.vernetperronllc.jcoz.client.cli.RemoteServiceWrapper;
 import com.vernetperronllc.jcoz.client.cli.TargetProcessInterface;
+import com.vernetperronllc.jcoz.profile.Experiment;
 import com.vernetperronllc.jcoz.service.JCozException;
 
 

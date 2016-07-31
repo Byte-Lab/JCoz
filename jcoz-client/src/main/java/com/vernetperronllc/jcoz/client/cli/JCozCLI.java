@@ -33,7 +33,7 @@ import org.apache.commons.cli.ParseException;
 
 import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
-import com.vernetperronllc.jcoz.Experiment;
+import com.vernetperronllc.jcoz.profile.Experiment;
 import com.vernetperronllc.jcoz.service.JCozException;
 import com.vernetperronllc.jcoz.service.VirtualMachineConnectionException;
 
@@ -55,11 +55,11 @@ public class JCozCLI {
 		ppLineNoOption.setRequired(true);
 		ops.addOption(ppLineNoOption);
 		
-		Option pidOption = new Option("p", "pid", true, "ProcessID to profile");
+		Option pidOption = new Option("p", "pid", true, "ProcessID to com.vernetperronllc.jcoz.profile");
 		pidOption.setRequired(true);
 		ops.addOption(pidOption);
 		
-		Option scopeOption = new Option("s", "scope", true, "scope to profile (package)");
+		Option scopeOption = new Option("s", "scope", true, "scope to com.vernetperronllc.jcoz.profile (package)");
 		scopeOption.setRequired(true);
 		ops.addOption(scopeOption);
 		

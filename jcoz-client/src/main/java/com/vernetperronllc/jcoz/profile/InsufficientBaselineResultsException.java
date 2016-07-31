@@ -18,7 +18,7 @@
  * (https://github.com/dcapwell/lightweight-java-profiler). See APACHE_LICENSE for
  * a copy of the license that was included with that original work.
  */
-package com.vernetperronllc.jcoz;
+package com.vernetperronllc.jcoz.profile;
 
 public class InsufficientBaselineResultsException extends Exception {
 

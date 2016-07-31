@@ -27,8 +27,8 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.vernetperronllc.jcoz.Experiment;
 import com.vernetperronllc.jcoz.agent.JCozProfilingErrorCodes;
+import com.vernetperronllc.jcoz.profile.Experiment;
 import com.vernetperronllc.jcoz.service.InvalidWhenProfilerNotRunningException;
 import com.vernetperronllc.jcoz.service.JCozException;
 import com.vernetperronllc.jcoz.service.JCozExceptionFactory;

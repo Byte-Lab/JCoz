@@ -19,7 +19,7 @@
  * a copy of the license that was included with that original work.
  */
 
-package com.vernetperronllc.jcoz;
+package com.vernetperronllc.jcoz.profile;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;

@@ -29,10 +29,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.vernetperronllc.jcoz.Experiment;
-import com.vernetperronllc.jcoz.ExperimentLinePartitioner;
-import com.vernetperronllc.jcoz.LineSpeedup;
 import com.vernetperronllc.jcoz.client.cli.TargetProcessInterface;
+import com.vernetperronllc.jcoz.profile.Experiment;
+import com.vernetperronllc.jcoz.profile.LineSpeedup;
+import com.vernetperronllc.jcoz.profile.Profile;
 import com.vernetperronllc.jcoz.service.JCozException;
 
 import javafx.animation.Animation;
@@ -57,7 +57,7 @@ import javafx.util.Duration;
 
 public class VisualizeProfileScene {
 
-	private static String PROFILE_NAME = "profile.coz";
+	private static String PROFILE_NAME = "com.vernetperronllc.jcoz.profile.coz";
 	
 	private static VisualizeProfileScene vpScene = null;
 
@@ -73,13 +73,11 @@ public class VisualizeProfileScene {
 	private final Button experimentsConsoleButton = new Button("Print experiments to console");
 
 	// Visualization    
-	private LineChart<Number,Number> lineChart;
-	private final Map<Integer, XYChart.Series<Number, Number>> seriesMap = new TreeMap<>();
 	private Timeline visualizationUpdateTimeline;
-	List<Experiment> receivedExperiments = new ArrayList<>();
+	int chartRow;
 	
-	// Logging
-	RandomAccessFile profStream;
+	// Profile
+	Profile profile;
 
 	TargetProcessInterface client;
 
@@ -129,7 +127,8 @@ public class VisualizeProfileScene {
 		currRow++;
 
 		/*** VISUALIZATION ***/
-		this.setUpVisualizationSection(currRow);
+		currRow = this.setUpVisualizationSection(currRow);
+		this.chartRow = currRow;
 
 		this.scene = new Scene(this.grid, 980, 600);
 	}
@@ -140,14 +139,6 @@ public class VisualizeProfileScene {
 	 * @return Next available row after setting scene section.
 	 */
 	private int setUpVisualizationSection(int currRow) {
-		final NumberAxis xAxis = new NumberAxis();
-		final NumberAxis yAxis = new NumberAxis();
-		xAxis.setLabel("Line Speedup %");
-		yAxis.setLabel("Throughput improvement %");
-		this.lineChart = new LineChart<Number,Number>(xAxis,yAxis);
-		lineChart.setTitle("Speedup visualization");
-		grid.add(lineChart, 0, currRow++, 10, 10);
-
 		visualizationUpdateTimeline = new Timeline(new KeyFrame(
 				Duration.millis(5000),
 				new EventHandler<ActionEvent>() { 
@@ -157,17 +148,7 @@ public class VisualizeProfileScene {
 					}
 				}));
 		visualizationUpdateTimeline.setCycleCount(Animation.INDEFINITE);
-		
-		File profile = new File(VisualizeProfileScene.PROFILE_NAME);
-		try {
-			this.profStream = new RandomAccessFile(profile, "rw");
-			this.readExperimentsFromProfileFile();
-			this.renderLineSpeedups();
-		} catch (IOException e) {
-			System.err.println("Unable to create profile output file or read profile output from file");
-			e.printStackTrace();
-		}
-		
+				
 		return currRow;
 	}
 
@@ -175,9 +156,12 @@ public class VisualizeProfileScene {
 		return this.scene;
 	}
 
-	private void setClient(TargetProcessInterface client) {
-		this.processNameText.setText(client.toString().trim());
+	private void setClient(TargetProcessInterface client, String processName) {
+		this.profile = new Profile(processName);
+		this.processNameText.setText(profile.getProcess());
 		this.client = client;
+		
+		this.grid.add(this.profile.getLineChart(), 0, this.chartRow, 10, 10);
 	}
 
 	/**
@@ -187,94 +171,33 @@ public class VisualizeProfileScene {
 	 */
 	private synchronized void updateGraphVisualization() {
 		try {
-			this.pullNewExperiments();
+			List<Experiment> experiments = client.getProfilerOutput();
+			this.profile.addExperiments(experiments);
+			this.profile.renderLineSpeedups();
 		} catch (JCozException e) {
 			System.err.println("Unable to get profiler experiment outputs");
 			e.printStackTrace();
 			return;
 		}
-
-		this.renderLineSpeedups();
-	}
-	
-	/**
-	 * Render the line speedups for the current set of received experiments.
-	 */
-	private void renderLineSpeedups() {
-		List<LineSpeedup> lineSpeedups = ExperimentLinePartitioner
-				.getLineSpeedups(this.receivedExperiments);
-		for (LineSpeedup speedup : lineSpeedups) {
-			int lineNo = speedup.getLineNo();
-			if (!this.seriesMap.containsKey(lineNo)) {
-				XYChart.Series<Number, Number> newSeries = new XYChart.Series<>();
-				newSeries.setName("Line #: " + lineNo);
-				this.seriesMap.put(lineNo, newSeries);
-				lineChart.getData().add(newSeries);
-			}
-			XYChart.Series<Number, Number> currSeries = this.seriesMap.get(lineNo);
-			speedup.renderSeries(currSeries);
-		}
-	}
-	
-	/**
-	 * Read all of the experiments already contained in a profile output.
-	 * @throws IOException
-	 */
-	private void readExperimentsFromProfileFile() throws IOException {
-		// Iterate through every line in the file, and add 
-		while (this.profStream.getFilePointer() != this.profStream.length()) {
-			String line1 = this.profStream.readLine();
-			String line2 = this.profStream.readLine();
-			this.receivedExperiments.add(new Experiment(line1 + "\n" + line2));
-		}
-	}
-
-	private void pullNewExperiments() throws JCozException {
-		List<Experiment> experiments = client.getProfilerOutput();
-		for (Experiment exp : experiments) {
-			this.receivedExperiments.add(exp);
-		}
-		
-		try {
-			this.flushNewExperiments(experiments);
-		} catch (IOException e) {
-			System.err.println("Unable to flush profile output for experiments");
-			e.printStackTrace();
-		}
-	}
-	
-	private void flushNewExperiments(List<Experiment> experiments) throws IOException {
-		StringBuffer profText = new StringBuffer();
-		for (Experiment exp : experiments) {
-			profText.append(exp.toString() + "\n");
-		}
-		
-		this.profStream.writeBytes(profText.toString());
 	}
 
 	/**
 	 * Helper function for debugging. Prints all current experiments to the console.
 	 */
 	private synchronized void printExperimentsToConsole() {
-		try {
-			this.pullNewExperiments();
-			System.out.println("Printing " + this.receivedExperiments.size() + " experiments...");
-			for (Experiment exp : this.receivedExperiments) {
-				System.out.println(exp);
-			}
-		} catch (JCozException e) {
-			System.err.println("Unable to get profiler experiment outputs");
-			e.printStackTrace();
-			return;
+		List<Experiment> experiments = this.profile.getExperiments();
+		System.out.println("Printing " + experiments.size() + " experiments...");
+		for (Experiment exp : experiments) {
+			System.out.println(exp);
 		}
-
 	}
 
-	public static Scene getVisualizeProfileScene(TargetProcessInterface client, Stage stage) {
+	public static Scene getVisualizeProfileScene(
+			TargetProcessInterface client, Stage stage, String processName) {
 		if (VisualizeProfileScene.vpScene == null) {
 			VisualizeProfileScene.vpScene = new VisualizeProfileScene(stage);
 		}
-		vpScene.setClient(client);
+		vpScene.setClient(client, processName);
 		vpScene.visualizationUpdateTimeline.play();
 		return VisualizeProfileScene.vpScene.getScene();
 	}

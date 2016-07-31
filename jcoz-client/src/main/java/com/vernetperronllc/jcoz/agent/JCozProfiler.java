@@ -35,7 +35,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
-import com.vernetperronllc.jcoz.Experiment;
+import com.vernetperronllc.jcoz.profile.Experiment;
 
 /**
  * Implementation of the mbean, controls the underlying native profiler
@@ -58,7 +58,7 @@ public class JCozProfiler implements JCozProfilerMBean {
 	 */
 	private Integer progressPointLineNo_ = null;
 	/**
-	 * scope to profile
+	 * scope to com.vernetperronllc.jcoz.profile
 	 */
 	private String currentScope_ = null;
 	/**
@@ -191,7 +191,7 @@ public class JCozProfiler implements JCozProfilerMBean {
 	}
 
 	/**
-	 * set the scope to profile
+	 * set the scope to com.vernetperronllc.jcoz.profile
 	 */
 	public synchronized int setScope(String scopePackage) {
 		if (experimentRunning_) {

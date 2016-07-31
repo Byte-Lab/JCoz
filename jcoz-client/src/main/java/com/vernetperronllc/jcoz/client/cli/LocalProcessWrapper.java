@@ -39,11 +39,11 @@ import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
 import com.vernetperronllc.jcoz.agent.JCozProfiler;
 import com.vernetperronllc.jcoz.agent.JCozProfilerMBean;
+import com.vernetperronllc.jcoz.profile.Experiment;
 import com.vernetperronllc.jcoz.service.InvalidWhenProfilerNotRunningException;
 import com.vernetperronllc.jcoz.service.JCozException;
 import com.vernetperronllc.jcoz.service.JCozExceptionFactory;
 import com.vernetperronllc.jcoz.service.VirtualMachineConnectionException;
-import com.vernetperronllc.jcoz.Experiment;
 
 public class LocalProcessWrapper implements TargetProcessInterface{
 	

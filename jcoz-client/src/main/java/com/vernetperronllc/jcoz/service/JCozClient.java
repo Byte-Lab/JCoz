@@ -38,8 +38,9 @@ import javax.management.remote.JMXServiceURL;
 import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
 import com.vernetperronllc.jcoz.agent.JCozProfiler;
-import com.vernetperronllc.jcoz.Experiment;
 import com.vernetperronllc.jcoz.agent.JCozProfilerMBean;
+import com.vernetperronllc.jcoz.profile.Experiment;
+
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.HashMap;

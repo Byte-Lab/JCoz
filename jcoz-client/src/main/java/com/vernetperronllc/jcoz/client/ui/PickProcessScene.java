@@ -208,7 +208,7 @@ public class PickProcessScene {
 	}
 	
 	/**
-	 * Set up the section where the list of profile configuration options
+	 * Set up the section where the list of com.vernetperronllc.jcoz.profile configuration options
 	 * are placed.
 	 * @param currRow The row where the configuration options should start.
 	 * @return Next available row after setting scene section.
@@ -244,7 +244,7 @@ public class PickProcessScene {
 	 * @return Next available row after setting scene section.
 	 */
 	private int setUpStartProfilingSection(int currRow, final Stage stage) {
-		// Listener for enabling the profile process button
+		// Listener for enabling the com.vernetperronllc.jcoz.profile process button
         Timer buttonEnableTimer = new Timer("buttonEnable");
         TimerTask buttonUpdateTask = new TimerTask() {
         	@Override
@@ -275,7 +275,8 @@ public class PickProcessScene {
                     	VirtualMachineDescriptor descriptor = activeLocalJCozVMs.get(chosenProcess);
                     	profiledClient = new LocalProcessWrapper(descriptor);
                     } else {
-                    	int remotePid = getPidFromProcessString(chosenProcess);
+                    	int remotePid = getPidFromVMStringString(chosenProcess);
+                    	chosenProcess = getProcessNameFromVMString(chosenProcess);
                     	profiledClient = remoteService.attachToProcess(remotePid);
                     }
                     
@@ -283,7 +284,7 @@ public class PickProcessScene {
                     profiledClient.startProfiling();
                     
                     stage.setScene(VisualizeProfileScene.getVisualizeProfileScene(
-                    		profiledClient,stage));
+                    		profiledClient, stage, chosenProcess));
                 } catch (JCozException | VirtualMachineConnectionException e) {
                     System.err.println("Unable to connect to target process.");
                     e.printStackTrace();
@@ -298,14 +299,23 @@ public class PickProcessScene {
 	/**
 	 * Get the PID from a string of the form PID: <pid> - Name: <name>.
 	 */
-	private int getPidFromProcessString(String processString) {
-		String pidStart = processString.substring(5, processString.length());
+	private int getPidFromVMStringString(String vmString) {
+		String pidStart = vmString.substring(5, vmString.length());
 		Scanner pidScanner = new Scanner(pidStart);
 		
 		int pid = pidScanner.nextInt();
 		pidScanner.close();
 		
 		return pid;
+	}
+	
+	/**
+	 * Get the process name from a string of the form PID: <pid> - Name: <name>.
+	 */
+	private String getProcessNameFromVMString(String vmString) {
+		int nameIndex = vmString.indexOf("Name:");
+		
+		return vmString.substring(nameIndex + "Name:".length());
 	}
 	
 	private void setClientParameters(TargetProcessInterface profiledClient) throws JCozException {
