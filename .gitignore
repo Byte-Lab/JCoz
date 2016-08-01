@@ -4,3 +4,9 @@
 *.o
 ~$project_presentation.pptx
 ~$speedup_and_prof_runtime_overhead.xlsx
+*.classpath
+*.coz
+*.xml
+.idea/
+*.xml
+.idea/workspace.xml

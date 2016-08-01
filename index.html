@@ -165,8 +165,7 @@
                   stack trace (which would have caused our sampling logic to be completely unpredictable). For example, we observed that no safe points were
                   being added in tight, expensive loops. To get around this issue, we used the undocumented
                   <tt>AsyncGetStackTrace</tt> function to get stack traces in non-safe points. It took quite a lot of scaffolding and patchy code to properly use
-                  this function, and we ended up integrating our code with the <a href="https://github.com/dcapwell/lightweight-java-profiler">lightweight-java-profiler</a>
-                  codebase, as they had previously added some complicated code to use the <tt>AsyncGetStackTrace</tt> function.
+                  this function.
               </p>
               <p>
                   Another technique we used in our profiler was sampling. It would have required far too much overhead to listen to each instruction
@@ -174,12 +173,6 @@
                   handler, each thread determines if it is executing the experiment line by calling <tt>AsyncGetStackTrace</tt>. If so, it notifies other threads to sleep 
                   by incrementing a global sleep counter. This provides a nice tuning knob for configuring the profiler, as we can easily adjust
                   experiment duration and sampling frequency to tune the runtime overhead and profiling granularity of JCoz.
-              </p>
-              <p>
-                  We occassionally referenced the <a href="https://github.com/plasma-umass/coz">original COZ implementation</a> 
-                  to gain insights into how they implemented certain techniques. In addition, as mentioned above, we integrated parts of our code with the
-                  <a href="https://github.com/dcapwell/lightweight-java-profiler">lightweight-java-profiler</a> to take advantage of their approach to
-                  using the undocumented JVMTI method <tt>AsyncGetCallTrace</tt>.
               </p>
 
             <h2>Results</h2>
@@ -230,7 +223,6 @@
                   JCoz joins a community of existing Java profilers, including 
                   <a href="http://docs.oracle.com/javase/7/docs/technotes/samples/HPROF.html">HPROF</a>,
                   <a href="http://docs.oracle.com/javase/6/docs/technotes/tools/share/jvisualvm.html">JVisualVM</a>,
-                  and <a href="https://github.com/dcapwell/lightweight-java-profiler">lightweight java profiler</a>.
               </p>
             
               <p>
