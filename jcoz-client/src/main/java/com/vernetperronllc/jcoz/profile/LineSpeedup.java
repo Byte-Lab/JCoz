@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.vernetperronllc.jcoz.client.ui.VisualizeProfileScene;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.chart.XYChart;
@@ -48,7 +50,7 @@ public class LineSpeedup {
 		
 		this.lineNo = lineNo;
 	
-		this.updateSpeedupMap();
+		this.updateSpeedupMap(VisualizeProfileScene.DEFAULT_MIN_SAMPLES);
 	}
 	
 	public LineSpeedup(Experiment exp) {
@@ -78,7 +80,7 @@ public class LineSpeedup {
 	 * Update the speedup map to use the latest experiment data.
 	 * @throws InsufficientBaselineResultsException
 	 */
-	private void updateSpeedupMap() throws InsufficientBaselineResultsException {
+	private void updateSpeedupMap(int minSamples) throws InsufficientBaselineResultsException {
 		this.baselineSpeedup = this.calculateBaselineSpeedup();
 		this.speedupMap.clear();
 		
@@ -87,10 +89,17 @@ public class LineSpeedup {
 		for (Float speedup : speedups.keySet()) {
 			long totalDuration = 0;
 			long pointsHit = 0;
-			for (Experiment exp : speedups.get(speedup)) {
+			List<Experiment> speedupExps = speedups.get(speedup);
+			
+			// Don't plot speedup measurements with fewer than the minimum required samples.
+			if (speedupExps.size() < minSamples) {
+				continue;
+			}
+			for (Experiment exp : speedupExps) {
 				pointsHit += exp.getPointsHit();
 				totalDuration += exp.getDuration();
 			}
+			
 			double preBaseSpeedup = (double)totalDuration / (double)pointsHit;
 			double actualSpeedup = (this.baselineSpeedup - preBaseSpeedup) / this.baselineSpeedup;
 			this.speedupMap.put((double)speedup, actualSpeedup);
@@ -155,11 +164,11 @@ public class LineSpeedup {
 	 * @param series The series in which to render this LineSpeedup's data points. 
 	 * @throws InsufficientBaselineResultsException 
 	 */
-	public void renderSeries(XYChart.Series<Number, Number> series) throws InsufficientBaselineResultsException {
+	public void renderSeries(XYChart.Series<Number, Number> series, int minSamples) throws InsufficientBaselineResultsException {
         //populating the series with data
 		List<XYChart.Data<Number, Number>> speedupList = new ArrayList<>();
 
-		this.updateSpeedupMap();
+		this.updateSpeedupMap(minSamples);
 		
 		// Populate list with data points. 
         for (double speedup : speedupMap.keySet()) {

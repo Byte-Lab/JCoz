@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import com.vernetperronllc.jcoz.client.ui.VisualizeProfileScene;
+
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
 
@@ -61,7 +63,7 @@ public class Profile {
 	/**
 	 * Render the line speedups for the current set of received experiments.
 	 */
-	public void renderLineSpeedups() {
+	public synchronized void renderLineSpeedups(int minSamples) {
 		for (LineSpeedup lineSpeedup : lineData.values()) {
 			int lineNo = lineSpeedup.getLineNo();
 			if (!this.seriesMap.containsKey(lineNo)) {
@@ -72,7 +74,7 @@ public class Profile {
 			}
 			XYChart.Series<Number, Number> currSeries = this.seriesMap.get(lineNo);
 			try {
-				lineSpeedup.renderSeries(currSeries);
+				lineSpeedup.renderSeries(currSeries, minSamples);
 			} catch (InsufficientBaselineResultsException e) {
 				// Insufficient results -- NO-OP
 			}
@@ -83,7 +85,7 @@ public class Profile {
 	 * Add a list of experiments to this com.vernetperronllc.jcoz.profile.
 	 * @param experiments List of new experiments to add to com.vernetperronllc.jcoz.profile.
 	 */
-	public void addExperiments(List<Experiment> experiments) {
+	public synchronized void addExperiments(List<Experiment> experiments) {
 		for (Experiment exp : experiments) {
 			int lineNo = exp.getLineNo();
 			if (!lineData.containsKey(lineNo)) {
@@ -104,7 +106,7 @@ public class Profile {
 	/**
 	 * @return List of all experiments in this profile.
 	 */
-	public List<Experiment> getExperiments() {
+	public synchronized List<Experiment> getExperiments() {
 		List<Experiment> experiments = new ArrayList<>();
 		for (LineSpeedup lineSpeedup : this.lineData.values()) {
 			experiments.addAll(lineSpeedup.getExperiments());
@@ -133,7 +135,7 @@ public class Profile {
 	 * close the open file reader/writer.
 	 * @param experiments Pending experiments to be written.
 	 */
-	public void flushAndCloseLog(List<Experiment> experiments) {
+	public synchronized void flushAndCloseLog(List<Experiment> experiments) {
 		try {
 			this.flushExperimentsToCozFile(experiments);
 			this.stream.close();
@@ -167,7 +169,7 @@ public class Profile {
 		try {
 			this.stream = new RandomAccessFile(profile, "rw");
 			this.readExperimentsFromLogFile();
-			this.renderLineSpeedups();
+			this.renderLineSpeedups(VisualizeProfileScene.DEFAULT_MIN_SAMPLES);
 		} catch (IOException e) {
 			System.err.println("Unable to create com.vernetperronllc.jcoz.profile output file or read com.vernetperronllc.jcoz.profile output from file");
 			e.printStackTrace();

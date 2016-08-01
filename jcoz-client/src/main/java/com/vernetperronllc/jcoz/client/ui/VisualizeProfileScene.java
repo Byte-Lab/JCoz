@@ -30,6 +30,8 @@ import com.vernetperronllc.jcoz.service.JCozException;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -38,6 +40,8 @@ import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
@@ -45,21 +49,25 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.util.converter.NumberStringConverter;
 
 public class VisualizeProfileScene {
 
 	private static VisualizeProfileScene vpScene = null;
 
+	public static int DEFAULT_MIN_SAMPLES = 5;
+	
 	private final GridPane grid = new GridPane();
 
 	private final Scene scene;
 
 	// Text elements
-	private final Text processNameText = new Text();
+	final Text scenetitle = new Text();
 
 	// Controls
 	private final Button stopProfilingButton = new Button("Stop profiling");
 	private final Button experimentsConsoleButton = new Button("Print experiments to console");
+	private final TextField minSamplesText = new TextField();
 
 	// Visualization    
 	private Timeline visualizationUpdateTimeline;
@@ -79,18 +87,20 @@ public class VisualizeProfileScene {
 		this.grid.setVgap(10);
 		this.grid.setPadding(new Insets(25, 25, 25, 25));
 
-		final Text scenetitle = new Text("Profiling process");
-		scenetitle.setFont(Font.font("Tahoma", FontWeight.NORMAL, 20));
+		this.scenetitle.setFont(Font.font("Tahoma", FontWeight.NORMAL, 20));
 		int currRow = 0;
-		this.grid.add(scenetitle, 0, currRow++, 2, 1);
-
-		/*** Text elements ***/
-		final Label processNameLabel = new Label("Process name");
-		this.grid.add(processNameLabel, 0, currRow);
-		this.grid.add(this.processNameText, 1, currRow);
-		currRow++;
+		this.grid.add(this.scenetitle, 0, currRow++, 2, 1);
 
 		/*** Controls ***/
+		currRow = this.setUpProfileControls(currRow, stage);
+		
+		/*** VISUALIZATION ***/
+		currRow = this.setUpVisualizationSection(currRow);
+
+		this.scene = new Scene(this.grid, 980, 600);
+	}
+	
+	private int setUpProfileControls(int currRow, final Stage stage) {
 		this.experimentsConsoleButton.setOnAction(new EventHandler<ActionEvent>() { 
 			@Override
 			public void handle(ActionEvent event) {
@@ -113,13 +123,29 @@ public class VisualizeProfileScene {
 				stage.setScene(PickProcessScene.getPickProcessScene(stage));
 			}
 		});
-		this.grid.add(this.stopProfilingButton, 0, currRow);
+		this.grid.add(this.stopProfilingButton, 0, currRow++);
+
+		final Label minSamplesLabel = new Label("Min samples:");
+		this.grid.add(minSamplesLabel, 0, currRow);
+		this.grid.add(this.minSamplesText, 1, currRow);
+		this.minSamplesText.setTextFormatter(
+        		new TextFormatter<>(new NumberStringConverter()));
+		this.minSamplesText.setText(VisualizeProfileScene.DEFAULT_MIN_SAMPLES + "");
+		
+		// Listen for updates to min samples and re-render chart on changes.  
+		this.minSamplesText.textProperty().addListener(new ChangeListener<String>() {
+		    @Override
+		    public void changed(ObservableValue<? extends String> observable,
+		            String oldValue, String newValue) {
+		    	try {
+		    		int minSamples = Integer.parseInt(newValue);
+		    		profile.renderLineSpeedups(minSamples);
+		    	} catch (NumberFormatException e) { /* NO-OP */ }
+		    }
+		});
 		currRow++;
 
-		/*** VISUALIZATION ***/
-		currRow = this.setUpVisualizationSection(currRow);
-
-		this.scene = new Scene(this.grid, 980, 600);
+		return currRow;
 	}
 	
 	/**
@@ -165,7 +191,7 @@ public class VisualizeProfileScene {
 	private void setClient(TargetProcessInterface client, String processName) {
 		this.lineChart.getData().clear();
 		this.profile = new Profile(processName, this.lineChart);
-		this.processNameText.setText(profile.getProcess());
+		this.scenetitle.setText("Profiling process -- " + profile.getProcess());
 		this.client = client;
 	}
 
@@ -177,8 +203,24 @@ public class VisualizeProfileScene {
 	private synchronized void updateGraphVisualization() {
 		try {
 			List<Experiment> experiments = client.getProfilerOutput();
+			
+			// Don't re-render if we don't have any more experiments.
+			if (experiments.size() == 0) {
+				return;
+			}
+			
+			String minSamplesStr = this.minSamplesText.getText();
+			int minSamples = VisualizeProfileScene.DEFAULT_MIN_SAMPLES;
+			try {
+				if (minSamplesStr != null && !minSamplesStr.equals("")) {
+					int minParse = Integer.parseInt(minSamplesStr);
+					if (minParse >= 1) {
+						minSamples = minParse;
+					}
+				}
+			} catch (NumberFormatException e) { /* NO-OP if field is invalid */ }
 			this.profile.addExperiments(experiments);
-			this.profile.renderLineSpeedups();
+			this.profile.renderLineSpeedups(minSamples);
 		} catch (JCozException e) {
 			System.err.println("Unable to get profiler experiment outputs");
 			e.printStackTrace();
