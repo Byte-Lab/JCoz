@@ -164,9 +164,9 @@ public class PickProcessScene {
 							remoteService = new RemoteServiceWrapper(host);
 							System.out.println("Connected to remote host");
 						} catch (JCozException e) {
+							// TODO(david): Display error state when a connection isn't made.
 							System.err.println("Unable to create connection to remote host " + host);
 							e.printStackTrace();
-							System.exit(1);
 						}
 					}
 				}
