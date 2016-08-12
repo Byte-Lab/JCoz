@@ -32,6 +32,9 @@
 
 static Profiler *prof;
 FILE *Globals::OutFile;
+static bool updateEventsEnabledState(jvmtiEnv *jvmti, jvmtiEventMode enabledState);
+static volatile int class_prep_lock = 0;
+static bool acquireCreateLock(); static void releaseCreateLock();
 
 void JNICALL OnThreadStart(jvmtiEnv *jvmti_env, JNIEnv *jni_env,
                            jthread thread) {
@@ -79,13 +82,44 @@ jthread create_thread(JNIEnv *jni_env) {
     return (jthread)ret;
 }
 
+/**
+ * Either enable or disable the custom agent events. This is
+ * fired when {@code startProfilingNative} or {@code endProfilingNative}
+ * are called.
+ */
+static bool updateEventsEnabledState(jvmtiEnv *jvmti, jvmtiEventMode enabledState) {
+  JVMTI_ERROR_1(
+    (jvmti->SetEventNotificationMode(enabledState, JVMTI_EVENT_CLASS_PREPARE, NULL)),
+    false);
+
+  return true;
+}
+
+static bool acquireCreateLock() {
+  bool has_lock = class_prep_lock == pthread_self();
+  if (!has_lock) {
+  	while (!__sync_bool_compare_and_swap(&class_prep_lock, 0, pthread_self()))
+			;
+
+		std::atomic_thread_fence(std::memory_order_acquire);
+  }
+	
+  return !has_lock;
+}
+
+static void releaseCreateLock() {
+	class_prep_lock = 0;
+  std::atomic_thread_fence(std::memory_order_release);
+}
+
 
 // Calls GetClassMethods on a given class to force the creation of
 // jmethodIDs of it.
 void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
   if (!prof->isRunning()){
-	return;
+		return;
   }
+  bool releaseLock = acquireCreateLock();
   jint method_count;
   JvmtiScopedPtr<jmethodID> methods(jvmti);
   jvmtiError e = jvmti->GetClassMethods(klass, &method_count, methods.GetRef());
@@ -115,6 +149,9 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
           prof->addProgressPoint(method_count, methods.Get());
       }
    }
+	if (releaseLock) {
+		releaseCreateLock();
+	}
 }
 
 jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
@@ -129,6 +166,7 @@ jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
    prof->setJNI(env);
    prof->setMBeanObject(thisObj);
    prof->Start();
+   updateEventsEnabledState(jvmti, JVMTI_ENABLE);
    jvmti->GetLoadedClasses(&class_count, classes.GetRef());
    jclass *classList = classes.Get();
    for (int i = 0; i < class_count; ++i) {
@@ -150,6 +188,7 @@ jint JNICALL endProfilingNative(JNIEnv *env, jobject thisObj) {
    printf("end Profiling native\n");
    fflush(stdout);
    prof->Stop();
+   updateEventsEnabledState(prof->getJVMTI(), JVMTI_DISABLE);
    prof->clearMBeanObject();
    prof->clearProgressPoint();
    return 0;
@@ -297,10 +336,9 @@ static bool RegisterJvmti(jvmtiEnv *jvmti) {
       (jvmti->SetEventCallbacks(callbacks, sizeof(jvmtiEventCallbacks))),
       false);
 
-  jvmtiEvent events[] = {JVMTI_EVENT_CLASS_LOAD, JVMTI_EVENT_CLASS_PREPARE,
+  jvmtiEvent events[] = {JVMTI_EVENT_CLASS_LOAD, JVMTI_EVENT_BREAKPOINT,
                          JVMTI_EVENT_THREAD_END, JVMTI_EVENT_THREAD_START,
-                         JVMTI_EVENT_VM_DEATH, JVMTI_EVENT_VM_INIT,
-                         JVMTI_EVENT_BREAKPOINT};
+                         JVMTI_EVENT_VM_DEATH, JVMTI_EVENT_VM_INIT};
 
   size_t num_events = sizeof(events) / sizeof(jvmtiEvent);
 

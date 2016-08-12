@@ -451,7 +451,7 @@ void Profiler::addUserThread(jthread thread) {
 		curr_ut->thread = pthread_self();
 		curr_ut->local_delay = global_delay;
 		curr_ut->java_thread = thread;
-        curr_ut->points_hit = 0;
+        	curr_ut->points_hit = 0;
 
 		// user threads lock
 		while (!__sync_bool_compare_and_swap(&user_threads_lock, 0, 1))
