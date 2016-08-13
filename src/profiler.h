@@ -31,6 +31,7 @@
 
 #include "globals.h"
 #include "stacktraces.h"
+#include "spdlog/spdlog.h"
 
 #ifndef PROFILER_H
 #define PROFILER_H
@@ -88,6 +89,8 @@ class Profiler {
   static std::string &getPackage() { return package; }
 
   static std::string &getProgressClass() { return progress_class; }
+
+  static std::shared_ptr<spdlog::logger> &getLogger() { return logger; };
 
   static std::unordered_set<void *> &getInScopeMethods() { return in_scope_ids; }
 
@@ -218,6 +221,8 @@ class Profiler {
   static bool prof_ready;
 
   static bool fix_exp;
+
+  static std::shared_ptr<spdlog::logger> logger;
 };
 
 #endif  // PROFILER_H
