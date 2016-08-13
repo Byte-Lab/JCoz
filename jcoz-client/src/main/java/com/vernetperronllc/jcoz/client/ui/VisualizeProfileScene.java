@@ -233,10 +233,10 @@ public class VisualizeProfileScene {
 	 */
 	private synchronized void printExperimentsToConsole() {
 		List<Experiment> experiments = this.profile.getExperiments();
-		System.out.println("Printing " + experiments.size() + " experiments...");
 		for (Experiment exp : experiments) {
 			System.out.println(exp);
 		}
+		System.out.println("Printed " + experiments.size() + " experiments to the console...");
 	}
 
 	public static Scene getVisualizeProfileScene(

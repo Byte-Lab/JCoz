@@ -320,9 +320,15 @@ public class PickProcessScene {
 	 * Get the process name from a string of the form PID: <pid> - Name: <name>.
 	 */
 	private String getProcessNameFromVMString(String vmString) {
-		int nameIndex = vmString.indexOf("Name:");
-
-		return vmString.substring(nameIndex + "Name:".length());
+		String[] splitVMStrings = vmString.split(" ");
+		for (int i = 0; i < splitVMStrings.length - 1; i++) {
+			String curr = splitVMStrings[i];
+			if (curr.indexOf("Name:") >= 0) {
+				return splitVMStrings[i + 1];
+			}
+		}
+		
+		return "";
 	}
 
 	private void setClientParameters(TargetProcessInterface profiledClient) throws JCozException {
