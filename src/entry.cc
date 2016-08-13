@@ -119,6 +119,7 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
   if (!prof->isRunning()){
 		return;
   }
+  auto logger = prof->getLogger();
   bool releaseLock = acquireCreateLock();
   jint method_count;
   JvmtiScopedPtr<jmethodID> methods(jvmti);
@@ -137,6 +138,8 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
       jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
 
       std::string package_str = "L" + prof->getPackage();
+      std::string class_pkg_str = "Creating JMethod IDs for class: " + std::string(ksig.Get()) + " for scope: " + package_str;
+      logger->info(class_pkg_str.c_str());
       if( strstr(ksig.Get(), package_str.c_str()) == ksig.Get() ) {
           prof->addInScopeMethods(method_count, methods.Get());
 
@@ -148,10 +151,10 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
       if( strstr(ksig.Get(), progress_pt_str.c_str()) == ksig.Get() ) {
           prof->addProgressPoint(method_count, methods.Get());
       }
-   }
-	if (releaseLock) {
-		releaseCreateLock();
-	}
+  }
+  if (releaseLock) {
+    releaseCreateLock();
+  }
 }
 
 jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
@@ -177,7 +180,6 @@ jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
       fflush(stdout);
       CreateJMethodIDsForClass(jvmti, klass);
    }
-
 
    jthread agent_thread = create_thread(env);
    jvmtiError agentErr = jvmti->RunAgentThread(agent_thread, &Profiler::runAgentThread, NULL, 1);

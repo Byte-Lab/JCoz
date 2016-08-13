@@ -51,6 +51,7 @@ __thread JNIEnv * Accessors::env_;
 #endif
 
 #define SIGNAL_FREQ 1000000L
+#define MIN_EXP_TIME 5000
 
 typedef std::chrono::duration<int, std::milli> milliseconds_type;
 typedef std::chrono::duration<long, std::nano> nanoseconds_type;
@@ -75,7 +76,7 @@ std::atomic_bool Profiler::_running(false);
 volatile bool Profiler::end_to_end = false;
 pthread_t Profiler::agent_pthread;
 std::atomic_bool Profiler::profile_done(false);
-unsigned long Profiler::experiment_time = 5000;
+unsigned long Profiler::experiment_time = MIN_EXP_TIME;
 jobject Profiler::mbean;
 jmethodID Profiler::mbean_cache_method_id;
 JNIEnv * Profiler::jni_;
@@ -96,6 +97,9 @@ static JVMPI_CallFrame static_call_frames[200];
 bool Profiler::fix_exp = false;
 
 nanoseconds_type startup_time;
+
+// Logger
+std::shared_ptr<spdlog::logger> Profiler::logger = spdlog::basic_logger_mt("basic_logger", "log.txt");
 
 /**
  * Wrapper function for sleeping
@@ -254,6 +258,7 @@ float Profiler::calculate_random_speedup() {
 }
 
 void Profiler::runExperiment(JNIEnv * jni_env) {
+  logger->info("Running experiment");
 	in_experiment = true;
 	points_hit = 0;
 
@@ -308,13 +313,14 @@ void Profiler::runExperiment(JNIEnv * jni_env) {
     if (!fix_exp) {
         if( current_experiment.points_hit <= 5 ) {
             experiment_time *= 2;
-        } else if( current_experiment.points_hit >= 20 ) {
+        } else if( (experiment_time > MIN_EXP_TIME) && (current_experiment.points_hit >= 20) ) {
             experiment_time /= 2;
         }
     }
 
 	delete[] current_experiment.location_ranges;
     free(sig);
+  logger->info("Ending experiment with exp time: {}", experiment_time);
 }
 
 void JNICALL
@@ -509,11 +515,14 @@ bool inline Profiler::frameInScope(JVMPI_CallFrame &curr_frame) {
 }
 
 void Profiler::addInScopeMethods(jint method_count, jmethodID *methods) {
+  logger->info("Adding {:d} in scope methods\n", method_count);
 	while (!__sync_bool_compare_and_swap(&in_scope_lock, 0, pthread_self()))
 		;
 	std::atomic_thread_fence(std::memory_order_acquire);
 	for (int i = 0; i < method_count; i++) {
-		in_scope_ids.insert((void *) methods[i]);
+    void *method = (void *)methods[i];
+    logger->info("Adding in scope method {}\n", method);
+		in_scope_ids.insert(method);
 	}
 	in_scope_lock = 0;
 	std::atomic_thread_fence(std::memory_order_release);

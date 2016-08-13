@@ -64,7 +64,7 @@ GLOBAL_WARNINGS= -Wformat-security -Wno-char-subscripts \
 	-Woverloaded-virtual
 GLOBAL_COPTS=-fdiagnostics-show-option -fno-exceptions \
 	-fno-omit-frame-pointer -fno-strict-aliasing -funsigned-char \
-	-fno-asynchronous-unwind-tables -m$(BITS) -msse2 -g \
+	-fno-asynchronous-unwind-tables -fexceptions -m$(BITS) -msse2 -g \
 	-D__STDC_FORMAT_MACROS
 COPTS:=$(PLATFORM_COPTS) $(GLOBAL_COPTS) $(PLATFORM_WARNINGS) \
 	$(GLOBAL_WARNINGS) $(OPT)
