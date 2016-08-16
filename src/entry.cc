@@ -138,8 +138,9 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
       jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
 
       std::string package_str = "L" + prof->getPackage();
-      std::string class_pkg_str = "Creating JMethod IDs for class: " + std::string(ksig.Get()) + " for scope: " + package_str;
-      logger->info(class_pkg_str.c_str());
+      logger->info(
+          "Creating JMethod IDs. [Class: {class}] [Scope: {scope}]",
+          fmt::arg("class", ksig.Get()), fmt::arg("scope", package_str));
       if( strstr(ksig.Get(), package_str.c_str()) == ksig.Get() ) {
           prof->addInScopeMethods(method_count, methods.Get());
 
@@ -158,8 +159,8 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
 }
 
 jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
-   printf("start profiling Native\n");
-   fflush(stdout);
+   auto logger = prof->getLogger();
+   logger->info("startProfilingNative called");
    // Forces the creation of jmethodIDs of the classes that had already
    // been loaded (eg java.lang.Object, java.lang.ClassLoader) and
    // OnClassPrepare() misses.
@@ -176,8 +177,7 @@ jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
       jclass klass = classList[i];
       JvmtiScopedPtr<char> ksig(jvmti);
       jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
-      printf("start prof class load :%s\n", ksig.Get());
-      fflush(stdout);
+      logger->info("Loading class {}", ksig.Get());
       CreateJMethodIDsForClass(jvmti, klass);
    }
 
@@ -187,8 +187,8 @@ jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
 }
 
 jint JNICALL endProfilingNative(JNIEnv *env, jobject thisObj) {
-   printf("end Profiling native\n");
-   fflush(stdout);
+   auto logger = prof->getLogger();
+   logger->info("endProfilingNative called");
    prof->Stop();
    updateEventsEnabledState(prof->getJVMTI(), JVMTI_DISABLE);
    prof->clearMBeanObject();
@@ -198,8 +198,8 @@ jint JNICALL endProfilingNative(JNIEnv *env, jobject thisObj) {
 
 jint JNICALL setProgressPointNative(JNIEnv *env, jobject thisObj, jstring className, jint line_no) {
   const char *nativeClassName = env->GetStringUTFChars(className, 0);
-  printf("set Progress point native %s:%d\n", nativeClassName, line_no);
-  fflush(stdout);
+  auto logger = prof->getLogger();
+  logger->info("Setting Progress point: {}:{}", nativeClassName, line_no);
   prof->setProgressPoint(nativeClassName, line_no);
 
 
@@ -210,11 +210,10 @@ jint JNICALL setProgressPointNative(JNIEnv *env, jobject thisObj, jstring classN
 
 jint JNICALL setScopeNative(JNIEnv *env, jobject thisObj, jstring scope) {
   const char *nativeScope = env->GetStringUTFChars(scope, 0);
+  auto logger = prof->getLogger();
 
   prof->setScope(nativeScope);
-  printf("set scope %s\n", nativeScope);
-
-  fflush(stdout);
+  logger->info("Setting scope {}", nativeScope);
   env->ReleaseStringUTFChars(scope, nativeScope);
   return 0;
 }

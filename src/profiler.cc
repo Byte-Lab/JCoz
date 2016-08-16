@@ -137,7 +137,7 @@ void Profiler::ParseOptions(const char *options) {
         print_usage();
         exit(1);
     }else{
-    	printf("%s\n", options);
+    	logger->info("Received options: {}", options);
     }
     std::string options_str(options);
     std::stringstream ss(options_str);
@@ -318,9 +318,16 @@ void Profiler::runExperiment(JNIEnv * jni_env) {
         }
     }
 
+    // Log the run experiment results
+  logger->info(
+      "Ran experiment: [class: {class}:{line_no}] [speedup: {speedup}] [points hit: {points_hit}] [delay: {delay}] [duration: {duration}] [new exp time: {exp_time}]",
+      fmt::arg("exp_time", experiment_time), fmt::arg("speedup", current_experiment.speedup), fmt::arg("points_hit", current_experiment.points_hit),
+      fmt::arg("delay", current_experiment.delay), fmt::arg("duration", current_experiment.duration), fmt::arg("class", sig),
+      fmt::arg("line_no", current_experiment.lineno));
+  logger->flush();
+
 	delete[] current_experiment.location_ranges;
-    free(sig);
-  logger->info("Ending experiment with exp time: {}", experiment_time);
+  free(sig);
 }
 
 void JNICALL
@@ -558,8 +565,7 @@ void Profiler::addProgressPoint(jint method_count, jmethodID *methods) {
                 progress_point->method_id = methods[i];
                 progress_point->location = curr_entry.start_location;
                 jvmti->SetBreakpoint(progress_point->method_id, progress_point->location);
-                printf("Progress point set\n");
-                fflush(stdout);
+                logger->info("Progress point set");
                 return;
             }
         }
@@ -809,6 +815,7 @@ void Profiler::Stop() {
 	}
     clearInScopeMethods();
 	signal(SIGPROF, SIG_IGN);
+  logger->flush();
 }
 
 void Profiler::setJVMTI(jvmtiEnv *jvmti_env) {
