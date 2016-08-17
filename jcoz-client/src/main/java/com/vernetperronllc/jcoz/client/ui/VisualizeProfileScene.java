@@ -25,6 +25,8 @@ import java.util.List;
 import com.vernetperronllc.jcoz.client.cli.TargetProcessInterface;
 import com.vernetperronllc.jcoz.profile.Experiment;
 import com.vernetperronllc.jcoz.profile.Profile;
+import com.vernetperronllc.jcoz.profile.sort.MaximizeThroughputSorter;
+import com.vernetperronllc.jcoz.profile.sort.ProfileSpeedupSorter;
 import com.vernetperronllc.jcoz.service.JCozException;
 
 import javafx.animation.Animation;
@@ -56,6 +58,8 @@ public class VisualizeProfileScene {
 	private static VisualizeProfileScene vpScene = null;
 
 	public static int DEFAULT_MIN_SAMPLES = 5;
+	public static int DEFAULT_NUM_SERIES = 5;
+	public static ProfileSpeedupSorter DEFAULT_SORTER = MaximizeThroughputSorter.getInstance();
 	
 	private final GridPane grid = new GridPane();
 
@@ -139,7 +143,9 @@ public class VisualizeProfileScene {
 		            String oldValue, String newValue) {
 		    	try {
 		    		int minSamples = Integer.parseInt(newValue);
-		    		profile.renderLineSpeedups(minSamples);
+		    		profile.renderLineSpeedups(
+		    				minSamples, VisualizeProfileScene.DEFAULT_NUM_SERIES,
+		    				VisualizeProfileScene.DEFAULT_SORTER);
 		    	} catch (NumberFormatException e) { /* NO-OP */ }
 		    }
 		});
@@ -220,7 +226,10 @@ public class VisualizeProfileScene {
 				}
 			} catch (NumberFormatException e) { /* NO-OP if field is invalid */ }
 			this.profile.addExperiments(experiments);
-			this.profile.renderLineSpeedups(minSamples);
+			this.profile.renderLineSpeedups(
+					minSamples,
+					VisualizeProfileScene.DEFAULT_NUM_SERIES,
+					VisualizeProfileScene.DEFAULT_SORTER);
 		} catch (JCozException e) {
 			System.err.println("Unable to get profiler experiment outputs");
 			e.printStackTrace();
