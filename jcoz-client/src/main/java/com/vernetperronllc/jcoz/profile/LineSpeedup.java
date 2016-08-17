@@ -27,9 +27,8 @@ import java.util.Map;
 
 import com.vernetperronllc.jcoz.client.ui.VisualizeProfileScene;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.scene.chart.XYChart;
+import javafx.scene.chart.XYChart.Series;
 
 /**
  * An object containing speedup information for a single line in a com.vernetperronllc.jcoz.profile.
@@ -161,24 +160,23 @@ public class LineSpeedup {
 	/**
 	 * Given a series to be displayed on a chart, render all of the data points
 	 * corresponding to speedup values for this LineSpeedup object.
-	 * @param series The series in which to render this LineSpeedup's data points. 
-	 * @throws InsufficientBaselineResultsException 
+	 * @throws InsufficientBaselineResultsException When there aren't a sufficient number
+	 * 		of samples to render this series.
 	 */
-	public void renderSeries(XYChart.Series<Number, Number> series, int minSamples) throws InsufficientBaselineResultsException {
-        //populating the series with data
-		List<XYChart.Data<Number, Number>> speedupList = new ArrayList<>();
-
+	public Series<Number, Number> renderSeries(int minSamples) throws InsufficientBaselineResultsException {
 		this.updateSpeedupMap(minSamples);
 		
+        //populating the series with data
+		Series<Number, Number> series = new Series<>();
+		String classSig = this.experiments.get(0).getClassSig();
+		series.setName(classSig + ":" + this.getLineNo());
+
 		// Populate list with data points. 
         for (double speedup : speedupMap.keySet()) {
-            speedupList.add(new XYChart.Data<Number, Number>(speedup, speedupMap.get(speedup)));
+        	series.getData().add(new XYChart.Data<Number, Number>(speedup, speedupMap.get(speedup)));
         }
-
-        // Add data points to series.
-        ObservableList<XYChart.Data<Number, Number>> dataPoints =
-        		FXCollections.observableList(speedupList);
-        series.setData(dataPoints);
+        
+        return series;
 	}
 
 	public List<Experiment> getExperiments() {

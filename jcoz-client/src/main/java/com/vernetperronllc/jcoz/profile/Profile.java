@@ -27,9 +27,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 import com.vernetperronllc.jcoz.client.ui.VisualizeProfileScene;
+import com.vernetperronllc.jcoz.profile.sort.ProfileSpeedupSorter;
 
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
@@ -42,7 +42,7 @@ import javafx.scene.chart.XYChart;
  * @author David
  */
 public class Profile {
-	private Map<Integer, LineSpeedup> lineData = new HashMap<>();
+	private Map<String, ClassSpeedup> classSpeedups = new HashMap<>();
 
 	private String process;
 	
@@ -50,8 +50,6 @@ public class Profile {
 	
 	RandomAccessFile stream;
 	
-	private final Map<Integer, XYChart.Series<Number, Number>> seriesMap = new TreeMap<>();
-		
 	public Profile(String process, LineChart<Number,Number> lineChart) {
 		this.process = process;
 		
@@ -63,21 +61,16 @@ public class Profile {
 	/**
 	 * Render the line speedups for the current set of received experiments.
 	 */
-	public synchronized void renderLineSpeedups(int minSamples) {
-		for (LineSpeedup lineSpeedup : lineData.values()) {
-			int lineNo = lineSpeedup.getLineNo();
-			if (!this.seriesMap.containsKey(lineNo)) {
-				XYChart.Series<Number, Number> newSeries = new XYChart.Series<>();
-				newSeries.setName("Line " + lineNo);
-				this.seriesMap.put(lineNo, newSeries);
-				lineChart.getData().add(newSeries);
-			}
-			XYChart.Series<Number, Number> currSeries = this.seriesMap.get(lineNo);
-			try {
-				lineSpeedup.renderSeries(currSeries, minSamples);
-			} catch (InsufficientBaselineResultsException e) {
-				// Insufficient results -- NO-OP
-			}
+	public synchronized void renderLineSpeedups(
+			int minSamples,
+			int numSeries,
+			ProfileSpeedupSorter sorter) {
+		// Always clear data because the user may have chosen a different sorting.
+		lineChart.getData().clear();
+		List<XYChart.Series<Number, Number>> series =
+				sorter.createCharts(this.classSpeedups.values(), minSamples);
+		for (int i = 0; i< Math.min(numSeries, series.size()); i++) {
+			lineChart.getData().add(series.get(i));
 		}
 	}
 	
@@ -87,11 +80,11 @@ public class Profile {
 	 */
 	public synchronized void addExperiments(List<Experiment> experiments) {
 		for (Experiment exp : experiments) {
-			int lineNo = exp.getLineNo();
-			if (!lineData.containsKey(lineNo)) {
-				lineData.put(lineNo, new LineSpeedup(exp));
+			String classSig = exp.getClassSig();
+			if (!this.classSpeedups.containsKey(classSig)) {
+				this.classSpeedups.put(classSig, new ClassSpeedup(exp));
 			} else {
-				lineData.get(lineNo).addExperiment(exp);
+				this.classSpeedups.get(classSig).addExperiment(exp);
 			}
 		}
 		
@@ -108,8 +101,8 @@ public class Profile {
 	 */
 	public synchronized List<Experiment> getExperiments() {
 		List<Experiment> experiments = new ArrayList<>();
-		for (LineSpeedup lineSpeedup : this.lineData.values()) {
-			experiments.addAll(lineSpeedup.getExperiments());
+		for (ClassSpeedup classSpeedup : this.classSpeedups.values()) {
+			experiments.addAll(classSpeedup.getExperiments());
 		}
 		
 		return experiments;
@@ -169,7 +162,10 @@ public class Profile {
 		try {
 			this.stream = new RandomAccessFile(profile, "rw");
 			this.readExperimentsFromLogFile();
-			this.renderLineSpeedups(VisualizeProfileScene.DEFAULT_MIN_SAMPLES);
+			this.renderLineSpeedups(
+					VisualizeProfileScene.DEFAULT_MIN_SAMPLES,
+					VisualizeProfileScene.DEFAULT_NUM_SERIES,
+					VisualizeProfileScene.DEFAULT_SORTER);
 		} catch (IOException e) {
 			System.err.println("Unable to create com.vernetperronllc.jcoz.profile output file or read com.vernetperronllc.jcoz.profile output from file");
 			e.printStackTrace();
@@ -187,11 +183,11 @@ public class Profile {
 			String line2 = this.stream.readLine();
 			Experiment newExp = new Experiment(line1 + "\n" + line2);
 			
-			int lineNo = newExp.getLineNo();
-			if (!lineData.containsKey(lineNo)) {
-				lineData.put(lineNo, new LineSpeedup(newExp));
+			String classSig = newExp.getClassSig();
+			if (!this.classSpeedups.containsKey(classSig)) {
+				this.classSpeedups.put(classSig, new ClassSpeedup(newExp));
 			} else {
-				lineData.get(lineNo).addExperiment(newExp);
+				this.classSpeedups.get(classSig).addExperiment(newExp);
 			}
 		}
 	}
