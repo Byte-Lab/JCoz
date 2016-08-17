@@ -124,15 +124,10 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
   jint method_count;
   JvmtiScopedPtr<jmethodID> methods(jvmti);
   jvmtiError e = jvmti->GetClassMethods(klass, &method_count, methods.GetRef());
-  if (e != JVMTI_ERROR_NONE && e != JVMTI_ERROR_CLASS_NOT_PREPARED) {
-    // JVMTI_ERROR_CLASS_NOT_PREPARED is okay because some classes may
-    // be loaded but not prepared at this point.
+  if (e != JVMTI_ERROR_NONE) {
     JvmtiScopedPtr<char> ksig(jvmti);
     JVMTI_ERROR((jvmti->GetClassSignature(klass, ksig.GetRef(), NULL)));
-    fprintf(
-        stderr,
-        "Failed to create method IDs for methods in class %s with error %d ",
-        ksig.Get(), e);
+    logger->error("Failed to create method IDs for methods in class {} with error {}", ksig.Get(), e);
   } else {
       JvmtiScopedPtr<char> ksig(jvmti);
       jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
