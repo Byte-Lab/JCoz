@@ -23,7 +23,7 @@ import java.util.ArrayList;
 public class TestThreadSerial {
 
 	public static long LOOP_ITERS = 50000000L;
-	public static final int numThreads = 8;
+	public static final int numThreads = 4;
 	public static ExecutorService executor = Executors
 			.newFixedThreadPool(numThreads);
 	public static ArrayList<Callable<Void>> threads = new ArrayList<>();
@@ -53,9 +53,14 @@ public class TestThreadSerial {
 		while (true) {
 			doParallel();
 			doSerial();
-			System.out.println("Iteration done");
+            sendRequest();
 		}
 	}
+
+
+    public static void sendRequest() {
+	    System.out.println("Iteration done");
+    }
 
 	public static void doSerial() throws InterruptedException {
 		long sum = 0;

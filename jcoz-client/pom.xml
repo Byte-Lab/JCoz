@@ -17,6 +17,13 @@
 			<artifactId>commons-cli</artifactId>
 			<version>1.3.1</version>
 		</dependency>
+        <dependency>
+			<groupId>com.sun</groupId>
+			<artifactId>jfxrt</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>/usr/lib/jvm/jre-1.8.0_oracle/lib/ext/jfxrt.jar</systemPath>
+        </dependency>
 	</dependencies>
 
 	<build>
@@ -30,23 +37,6 @@
 					<target>1.7</target>
 				</configuration>
 			</plugin>
-            <plugin>
-                <groupId>com.zenjava</groupId>
-                <artifactId>javafx-maven-plugin</artifactId>
-                <version>8.1.4</version>
-                <configuration>
-                    <mainClass>com.vernetperronllc.jcoz.client.ui.JCozClientUI</mainClass>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>create-jfxjar</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>build-jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
 		</plugins>
 	</build>
 </project>
