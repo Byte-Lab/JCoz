@@ -457,11 +457,13 @@ bool Profiler::thread_in_main(jthread thread) {
 		}
 	}
 
+    logger->info("Checking thread group: {}", thread_grp.name);
 	return !strcmp(thread_grp.name, "main");
 }
 
 void Profiler::addUserThread(jthread thread) {
 	if (thread_in_main(thread)) {
+        logger->info("Adding user thread");
 		curr_ut = new struct UserThread();
 		curr_ut->thread = pthread_self();
 		curr_ut->local_delay = global_delay;
@@ -482,6 +484,7 @@ void Profiler::addUserThread(jthread thread) {
 
 void Profiler::removeUserThread(jthread thread) {
 	if (curr_ut != NULL) {
+        logger->info("Adding user thread");
 		points_hit += curr_ut->points_hit;
 		curr_ut->points_hit = 0;
 

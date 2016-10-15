@@ -62,8 +62,6 @@ void JNICALL OnThreadEnd(jvmtiEnv *jvmti_env, JNIEnv *jni_env, jthread thread) {
 void JNICALL OnClassLoad(jvmtiEnv *jvmti_env, JNIEnv *jni_env, jthread thread,
                          jclass klass) {
 
-    auto logger = prof->getLogger();
-    logger->info("OnClassLoad fired");
   IMPLICITLY_USE(jvmti_env);
   IMPLICITLY_USE(jni_env);
   IMPLICITLY_USE(thread);
@@ -236,17 +234,21 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
   // register mbean
 
   auto logger = prof->getLogger();
+  logger->info("Trying to find JCozProfiler class");
   jclass cls = jni_env->FindClass("com/vernetperronllc/jcoz/agent/JCozProfiler");
   if (cls == nullptr){
-    fprintf(stderr, "Could not find JCoz Profiler class, did you add the jar to the classpath?\n");
-    return;
+      logger->error("Could not find JCoz Profiler class, did you add the jar to the classpath?");
+      fprintf(stderr, "Could not find JCoz Profiler class, did you add the jar to the classpath?\n");
+      exit(-1);
   }
+  logger->info("Found JCozProfiler class. Trying to find register profiler method.");
   jmethodID mid = jni_env->GetStaticMethodID(cls, "registerProfilerWithMBeanServer", "()V");
   if (mid == nullptr){
-    fprintf(stderr, "Could not find static method to register the mbean.\n");
-    return;
+      logger->error("Could not find static method to register the mbean.");
+      fprintf(stderr, "Could not find static method to register the mbean.\n");
+      exit(-1);
   }
-  logger->info("Successfully JCoz Profiler class and static methodc to register mbean.");
+  logger->info("Successfully found JCoz Profiler class and static methodc to register mbean.");
 
   JNINativeMethod methods[] = {
        {(char *)"startProfilingNative",   (char *)"()I",                     (void *)&startProfilingNative},
