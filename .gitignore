@@ -29,4 +29,5 @@ questions
 .settings
 jcoz-client/target
 jcoz-client/.settings
-
+*.job.*
+*.log
