@@ -219,9 +219,11 @@ void Profiler::signal_user_threads() {
 	while (!__sync_bool_compare_and_swap(&user_threads_lock, 0, 1))
 		;
 	std::atomic_thread_fence(std::memory_order_acquire);
+    logger->info("Signaling user threads");
 	for (auto i = user_threads.begin(); i != user_threads.end(); i++) {
 		pthread_kill((*i)->thread, SIGPROF);
 	}
+    logger->info("Signaled user threads");
 	user_threads_lock = 0;
 	std::atomic_thread_fence(std::memory_order_release);
 }
@@ -610,7 +612,6 @@ void Profiler::Handle(int signum, siginfo_t *info, void *context) {
     if( !prof_ready ) {
         return;
     }
-
 	IMPLICITLY_USE(signum);
 	IMPLICITLY_USE(info);
 
@@ -725,6 +726,7 @@ void Profiler::Start() {
 // old_action_ is stored, but never used.  This is in case of future
 // refactorings that need it.
 
+    logger->info("Starting profiler...");
 	old_action_ = handler_.SetAction(&Profiler::Handle);
 	std::srand(unsigned(std::time(0)));
 	call_frames.reserve(2000);
@@ -793,6 +795,7 @@ void Profiler::cleanSignature(char *sig) {
 
 void Profiler::clearProgressPoint() {
     if( !end_to_end && (progress_point->method_id != nullptr) ) {
+        logger->info("Clearing breakpoint");
         jvmti->ClearBreakpoint(progress_point->method_id, progress_point->location);
         progress_point->method_id = nullptr;
     }
@@ -802,6 +805,7 @@ void Profiler::Stop() {
 
     // Wait until we get to the end of the run
     // and then flush the profile output
+    logger->info("Stopping profiler");
 	if(_running){
 		if (end_to_end) {
 			points_hit++;
