@@ -87,6 +87,9 @@ client:
 java:
 	javac test/*.java -cp ${PROFILER_JAR}
 
+home:
+	echo ${JAVA_HOME}
+
 clean:
 	rm -rf $(BUILD_DIR)/*
 	rm -rf test/*.class
