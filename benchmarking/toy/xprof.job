@@ -5,7 +5,7 @@
 
 cd $SCRATCH
 
-execdir="${HOME}/JCoz/benchmarking"
+execdir="${HOME}/JCoz/benchmarking/toy"
 exe=latedays_xprof_sub.sh
 args=""
 

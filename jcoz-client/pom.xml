@@ -22,7 +22,7 @@
 			<artifactId>jfxrt</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>/usr/lib/jvm/jre-1.8.0_oracle/lib/ext/jfxrt.jar</systemPath>
+            <systemPath>/usr/java/latest/jre/lib/ext/jfxrt.jar</systemPath>
         </dependency>
 	</dependencies>
 

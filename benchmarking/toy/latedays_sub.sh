@@ -15,5 +15,5 @@ JCOZ_FLAG="-agentpath:${JCOZ_HOME}/build-64/liblagent.so"
 RMI_FLAGS="-Djava.rmi.useLocalHostname=false -Djava.rmi.server.hostname=${HOSTNAME}"
 alias jtest=""
 
-java -cp ${JCOZ_JARS} ${RMI_FLAGS} com.vernetperronllc.jcoz.service.JCozService > jcoz_service.log &
-java -cp ${JCOZ_TEST_CLASSES}:${JCOZ_JARS} ${JCOZ_FLAG} test.TestThreadSerial > jcoz_test.log
+java -cp ${JCOZ_JARS} ${RMI_FLAGS} com.vernetperronllc.jcoz.service.JCozService &
+java -cp ${JCOZ_TEST_CLASSES}:${JCOZ_JARS} ${JCOZ_FLAG} test.TestThreadSerial

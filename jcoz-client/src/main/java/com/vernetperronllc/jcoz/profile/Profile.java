@@ -80,6 +80,7 @@ public class Profile {
 	 */
 	public synchronized void addExperiments(List<Experiment> experiments) {
 		for (Experiment exp : experiments) {
+      System.out.println(exp);
 			String classSig = exp.getClassSig();
 			if (!this.classSpeedups.containsKey(classSig)) {
 				this.classSpeedups.put(classSig, new ClassSpeedup(exp));
@@ -181,7 +182,9 @@ public class Profile {
 		while (this.stream.getFilePointer() != this.stream.length()) {
 			String line1 = this.stream.readLine();
 			String line2 = this.stream.readLine();
+
 			Experiment newExp = new Experiment(line1 + "\n" + line2);
+      System.out.println(newExp);
 			
 			String classSig = newExp.getClassSig();
 			if (!this.classSpeedups.containsKey(classSig)) {

@@ -23,7 +23,7 @@ import java.util.ArrayList;
 public class TestThreadSerial {
 
 	public static long LOOP_ITERS = 50000000L;
-	public static final int numThreads = 4;
+	public static final int numThreads = 16;
 	public static ExecutorService executor = Executors
 			.newFixedThreadPool(numThreads);
 	public static ArrayList<Callable<Void>> threads = new ArrayList<>();
@@ -50,10 +50,14 @@ public class TestThreadSerial {
 		for (int i = 0; i < numThreads; i++) 
 			threads.add(new ParallelWorker());
 		
+    long start = System.currentTimeMillis();
 		while (true) {
 			doParallel();
 			doSerial();
-            sendRequest();
+      sendRequest();
+      if (System.currentTimeMillis() - start >= 3590000) {
+        break;
+      }
 		}
 	}
 
