@@ -163,10 +163,12 @@ public class Profile {
 		try {
 			this.stream = new RandomAccessFile(profile, "rw");
 			this.readExperimentsFromLogFile();
-			this.renderLineSpeedups(
-					VisualizeProfileScene.DEFAULT_MIN_SAMPLES,
-					VisualizeProfileScene.DEFAULT_NUM_SERIES,
-					VisualizeProfileScene.DEFAULT_SORTER);
+			if (this.lineChart != null) {
+				this.renderLineSpeedups(
+						VisualizeProfileScene.DEFAULT_MIN_SAMPLES,
+						VisualizeProfileScene.DEFAULT_NUM_SERIES,
+						VisualizeProfileScene.DEFAULT_SORTER);
+			}
 		} catch (IOException e) {
 			System.err.println("Unable to create com.vernetperronllc.jcoz.profile output file or read com.vernetperronllc.jcoz.profile output from file");
 			e.printStackTrace();
