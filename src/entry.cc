@@ -38,6 +38,8 @@ static bool acquireCreateLock(); static void releaseCreateLock();
 
 void JNICALL OnThreadStart(jvmtiEnv *jvmti_env, JNIEnv *jni_env,
                            jthread thread) {
+    auto logger = prof->getLogger();
+    logger->info("OnThreadStart fired");
     IMPLICITLY_USE(jvmti_env);
     IMPLICITLY_USE(thread);
     Accessors::SetCurrentJniEnv(jni_env);
@@ -46,6 +48,8 @@ void JNICALL OnThreadStart(jvmtiEnv *jvmti_env, JNIEnv *jni_env,
 }
 
 void JNICALL OnThreadEnd(jvmtiEnv *jvmti_env, JNIEnv *jni_env, jthread thread) {
+    auto logger = prof->getLogger();
+    logger->info("OnThreadEnd fired");
   IMPLICITLY_USE(jvmti_env);
   IMPLICITLY_USE(jni_env);
   IMPLICITLY_USE(thread);
@@ -57,6 +61,7 @@ void JNICALL OnThreadEnd(jvmtiEnv *jvmti_env, JNIEnv *jni_env, jthread thread) {
 // And AsyncGetCallTrace needs class loading events to be turned on!
 void JNICALL OnClassLoad(jvmtiEnv *jvmti_env, JNIEnv *jni_env, jthread thread,
                          jclass klass) {
+
   IMPLICITLY_USE(jvmti_env);
   IMPLICITLY_USE(jni_env);
   IMPLICITLY_USE(thread);
@@ -66,6 +71,8 @@ void JNICALL OnClassLoad(jvmtiEnv *jvmti_env, JNIEnv *jni_env, jthread thread,
 // Create a java thread -- currently used
 // to run profiler thread
 jthread create_thread(JNIEnv *jni_env) {
+    auto logger = prof->getLogger();
+    logger->info("Creating a thread in create_thread");
     jclass cls = jni_env->FindClass("java/lang/Thread");
     if( cls == NULL ) {
         exit(1);
@@ -88,6 +95,8 @@ jthread create_thread(JNIEnv *jni_env) {
  * are called.
  */
 static bool updateEventsEnabledState(jvmtiEnv *jvmti, jvmtiEventMode enabledState) {
+    auto logger = prof->getLogger();
+    logger->info("Setting CLASS_PREPARE to enabled");
   JVMTI_ERROR_1(
     (jvmti->SetEventNotificationMode(enabledState, JVMTI_EVENT_CLASS_PREPARE, NULL)),
     false);
@@ -120,10 +129,12 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
 		return;
   }
   auto logger = prof->getLogger();
+  logger->info("In CreateJMethodIDsForClass start");
   bool releaseLock = acquireCreateLock();
   jint method_count;
   JvmtiScopedPtr<jmethodID> methods(jvmti);
   jvmtiError e = jvmti->GetClassMethods(klass, &method_count, methods.GetRef());
+  logger->info("Got class methods from the JVM");
   if (e != JVMTI_ERROR_NONE) {
     JvmtiScopedPtr<char> ksig(jvmti);
     JVMTI_ERROR((jvmti->GetClassSignature(klass, ksig.GetRef(), NULL)));
@@ -222,16 +233,22 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
 
   // register mbean
 
+  auto logger = prof->getLogger();
+  logger->info("Trying to find JCozProfiler class");
   jclass cls = jni_env->FindClass("com/vernetperronllc/jcoz/agent/JCozProfiler");
   if (cls == nullptr){
-    fprintf(stderr, "Could not find JCoz Profiler class, did you add the jar to the classpath?\n");
-    return;
+      logger->error("Could not find JCoz Profiler class, did you add the jar to the classpath?");
+      fprintf(stderr, "Could not find JCoz Profiler class, did you add the jar to the classpath?\n");
+      exit(-1);
   }
+  logger->info("Found JCozProfiler class. Trying to find register profiler method.");
   jmethodID mid = jni_env->GetStaticMethodID(cls, "registerProfilerWithMBeanServer", "()V");
   if (mid == nullptr){
-    fprintf(stderr, "Could not find static method to register the mbean.\n");
-    return;
+      logger->error("Could not find static method to register the mbean.");
+      fprintf(stderr, "Could not find static method to register the mbean.\n");
+      exit(-1);
   }
+  logger->info("Successfully found JCoz Profiler class and static methodc to register mbean.");
 
   JNINativeMethod methods[] = {
        {(char *)"startProfilingNative",   (char *)"()I",                     (void *)&startProfilingNative},
@@ -241,12 +258,15 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
    };
 
   jint err;
+  logger->info("Registering native methods..");
   err = jni_env->RegisterNatives(cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
   if (err != JVMTI_ERROR_NONE){
     fprintf(stderr, "Could not register natives with error %d\n", err);
     return;
   }
+  logger->info("Registered native methods. Registering profiler with MBean server...");
   jni_env->CallStaticVoidMethod(cls, mid);
+  logger->info("Registered profiler with MBean server...");
 }
 
 void JNICALL OnClassPrepare(jvmtiEnv *jvmti_env, JNIEnv *jni_env,
@@ -316,6 +336,8 @@ static bool PrepareJvmti(jvmtiEnv *jvmti) {
 
 static bool RegisterJvmti(jvmtiEnv *jvmti) {
   // Create the list of callbacks to be called on given events.
+  auto logger = prof->getLogger();
+  logger->info("Registering jvmtiEventCallbacks in RegisterJvmti");
   jvmtiEventCallbacks *callbacks = new jvmtiEventCallbacks();
   memset(callbacks, 0, sizeof(jvmtiEventCallbacks));
 
@@ -340,11 +362,13 @@ static bool RegisterJvmti(jvmtiEnv *jvmti) {
 
   // Enable the callbacks to be triggered when the events occur.
   // Events are enumerated in jvmstatagent.h
+  logger->info("Setting event notification mode to JVMTI_ENABLE in Register Jvmti");
   for (int i = 0; i < num_events; i++) {
     JVMTI_ERROR_1(
         (jvmti->SetEventNotificationMode(JVMTI_ENABLE, events[i], NULL)),
         false);
   }
+  logger->info("Event notifications successfully enabled");
 
   return true;
 }
@@ -409,10 +433,12 @@ AGENTEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options,
   Asgct::SetAsgct(Accessors::GetJvmFunction<ASGCTType>("AsyncGetCallTrace"));
 
   prof = new Profiler(jvmti);
+  auto logger = prof->getLogger();
 
   prof->setJVMTI(jvmti);
   prof->init();
 
+  logger->info("Successfully loaded agent.");
   return 0;
 }
 
