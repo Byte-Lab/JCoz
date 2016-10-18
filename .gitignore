@@ -31,3 +31,4 @@ jcoz-client/target
 jcoz-client/.settings
 *.job.*
 *.log
+jcoz-client/src/main/bin

@@ -351,6 +351,7 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
     prof_ready = true;
 
     while (_running) {
+      logger->info("Starting new agent thread _running loop...");
         // 15 * SIGNAL_FREQ with randomization should give us roughly
         // the same number of iterations as doing 10 * SIGNAL_FREQ without
         // randomization.
@@ -362,9 +363,9 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
             jcoz_sleep(curr_sleep);
             signal_user_threads();
             total_accrued_time += curr_sleep;
-            logger->info("Slept for {sleep_time} time. {remaining_time} Remaining.",
-                         fmt::arg("sleep_time", curr_sleep),
-                         fmt::arg("remaining_time", total_needed_time - total_accrued_time));
+            logger->debug("Slept for {sleep_time} time. {remaining_time} Remaining.",
+                          fmt::arg("sleep_time", curr_sleep),
+                          fmt::arg("remaining_time", total_needed_time - total_accrued_time));
         }
 
 		while (!__sync_bool_compare_and_swap(&frame_lock, 0, 1))
@@ -374,7 +375,7 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
 			call_frames.push_back(static_call_frames[i]);
 		}
 		if (call_frames.size() > 0) {
-            logger->info("Had {} call frames. Checking for in scope call frame...", call_frames.size());
+      logger->debug("Had {} call frames. Checking for in scope call frame...", call_frames.size());
 			call_index = 0;
 			std::random_shuffle(call_frames.begin(), call_frames.end());
 			JVMPI_CallFrame exp_frame;
@@ -390,14 +391,16 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
 				}
 			}
 
-            // If we don't find anything in scope, try again
-            if( entries == NULL ) {
-                // TODO(dcv): Should we clear the call frames here?
-                logger->info("No in scope frames found. Trying again.");
-                continue;
-            }
+      // If we don't find anything in scope, try again
+      if( entries == NULL ) {
+          // TODO(dcv): Should we clear the call frames here?
+          logger->info("No in scope frames found. Trying again.");
+          frame_lock = 0;
+          std::atomic_thread_fence(std::memory_order_release);
+          continue;
+      }
 
-            logger->info("Found in scope frames. Choosing a frame and running experiment...");
+      logger->debug("Found in scope frames. Choosing a frame and running experiment...");
 			current_experiment.method_id = exp_frame.method_id;
 			jint start_line;
 			jint end_line; //exclusive
@@ -444,12 +447,15 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
 			frame_lock = 0;
 			std::atomic_thread_fence(std::memory_order_release);
 			jvmti->Deallocate((unsigned char *)entries);
+      logger->debug("Finished clearing frames and deallocating entries...");
 		} else {
+      logger->info("No frames found in agent thread. Trying sampling loop again...");
 			frame_lock = 0;
 			std::atomic_thread_fence(std::memory_order_release);
 		}
 	}
 
+  logger->info("Profiler done running...");
 	profile_done = true;
 }
 
@@ -474,13 +480,12 @@ bool Profiler::thread_in_main(jthread thread) {
 		}
 	}
 
-    logger->info("Checking thread group: {}", thread_grp.name);
 	return !strcmp(thread_grp.name, "main");
 }
 
 void Profiler::addUserThread(jthread thread) {
 	if (thread_in_main(thread)) {
-        logger->info("Adding user thread");
+        logger->debug("Adding user thread");
 		curr_ut = new struct UserThread();
 		curr_ut->thread = pthread_self();
 		curr_ut->local_delay = global_delay;
@@ -501,7 +506,7 @@ void Profiler::addUserThread(jthread thread) {
 
 void Profiler::removeUserThread(jthread thread) {
 	if (curr_ut != NULL) {
-        logger->info("Adding user thread");
+        logger->debug("Removing user thread");
 		points_hit += curr_ut->points_hit;
 		curr_ut->points_hit = 0;
 
@@ -558,6 +563,7 @@ void Profiler::addInScopeMethods(jint method_count, jmethodID *methods) {
 }
 
 void Profiler::clearInScopeMethods(){
+  logger->info("Clearing current in scope methods.");
 	while (!__sync_bool_compare_and_swap(&in_scope_lock, 0, pthread_self()));
 	in_scope_ids.clear();
 	in_scope_lock = 0;
@@ -825,7 +831,7 @@ void Profiler::Stop() {
 
     // Wait until we get to the end of the run
     // and then flush the profile output
-    logger->info("Stopping profiler");
+  logger->info("Stopping profiler");
 	if(_running){
 		if (end_to_end) {
 			points_hit++;
@@ -833,11 +839,14 @@ void Profiler::Stop() {
 
 		_running = false;
 
+    logger->info("Waiting for profiler to finish current cycle...");
 		while (!profile_done)
 			;
 
+    logger->info("Profiler finished current cycle...");
 	}
-    clearInScopeMethods();
+
+  clearInScopeMethods();
 	signal(SIGPROF, SIG_IGN);
   logger->flush();
 }
