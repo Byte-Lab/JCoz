@@ -53,6 +53,8 @@ __thread JNIEnv * Accessors::env_;
 #define SIGNAL_FREQ 1000000L
 #define MIN_EXP_TIME 5000
 
+#define NUM_CALL_FRAMES 200
+
 typedef std::chrono::duration<int, std::milli> milliseconds_type;
 typedef std::chrono::duration<long, std::nano> nanoseconds_type;
 
@@ -92,7 +94,7 @@ std::string Profiler::progress_class;
 
 
 static std::atomic<int> call_index(0);
-static JVMPI_CallFrame static_call_frames[200];
+static JVMPI_CallFrame static_call_frames[NUM_CALL_FRAMES];
 
 bool Profiler::fix_exp = false;
 
@@ -219,11 +221,9 @@ void Profiler::signal_user_threads() {
 	while (!__sync_bool_compare_and_swap(&user_threads_lock, 0, 1))
 		;
 	std::atomic_thread_fence(std::memory_order_acquire);
-    logger->info("Signaling user threads");
 	for (auto i = user_threads.begin(); i != user_threads.end(); i++) {
 		pthread_kill((*i)->thread, SIGPROF);
 	}
-    logger->info("Signaled user threads");
 	user_threads_lock = 0;
 	std::atomic_thread_fence(std::memory_order_release);
 }
@@ -328,8 +328,10 @@ void Profiler::runExperiment(JNIEnv * jni_env) {
       fmt::arg("line_no", current_experiment.lineno));
   logger->flush();
 
-	delete[] current_experiment.location_ranges;
+  delete[] current_experiment.location_ranges;
   free(sig);
+
+  logger->info("Finished experiment, flushed logs, and delete current location ranges.");
 }
 
 void JNICALL
@@ -348,19 +350,31 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
 //	usleep(warmup_time);
     prof_ready = true;
 
-	while (_running) {
-		for (int i = 0; i < 10; i++) {
-			jcoz_sleep(SIGNAL_FREQ);
-			signal_user_threads();
-		}
+    while (_running) {
+        // 15 * SIGNAL_FREQ with randomization should give us roughly
+        // the same number of iterations as doing 10 * SIGNAL_FREQ without
+        // randomization.
+        long total_needed_time = 15 * SIGNAL_FREQ;
+        long total_accrued_time = 0;
+        while (total_accrued_time < total_needed_time) {
+            // Sleep some randomized time to avoid bias in the profiler.
+            long curr_sleep = 2 * SIGNAL_FREQ - (rand() % SIGNAL_FREQ);
+            jcoz_sleep(curr_sleep);
+            signal_user_threads();
+            total_accrued_time += curr_sleep;
+            logger->info("Slept for {sleep_time} time. {remaining_time} Remaining.",
+                         fmt::arg("sleep_time", curr_sleep),
+                         fmt::arg("remaining_time", total_needed_time - total_accrued_time));
+        }
 
 		while (!__sync_bool_compare_and_swap(&frame_lock, 0, 1))
 			;
 		std::atomic_thread_fence(std::memory_order_acquire);
-		for (int i = 0; (i < call_index) && (i < 200); i++) {
+		for (int i = 0; (i < call_index) && (i < NUM_CALL_FRAMES); i++) {
 			call_frames.push_back(static_call_frames[i]);
 		}
 		if (call_frames.size() > 0) {
+            logger->info("Had {} call frames. Checking for in scope call frame...", call_frames.size());
 			call_index = 0;
 			std::random_shuffle(call_frames.begin(), call_frames.end());
 			JVMPI_CallFrame exp_frame;
@@ -378,9 +392,12 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
 
             // If we don't find anything in scope, try again
             if( entries == NULL ) {
+                // TODO(dcv): Should we clear the call frames here?
+                logger->info("No in scope frames found. Trying again.");
                 continue;
             }
 
+            logger->info("Found in scope frames. Choosing a frame and running experiment...");
 			current_experiment.method_id = exp_frame.method_id;
 			jint start_line;
 			jint end_line; //exclusive
@@ -423,7 +440,7 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
 				;
 			std::atomic_thread_fence(std::memory_order_acquire);
 			call_frames.clear();
-			memset(static_call_frames, 0, 200 * sizeof(JVMPI_CallFrame));
+			memset(static_call_frames, 0, NUM_CALL_FRAMES * sizeof(JVMPI_CallFrame));
 			frame_lock = 0;
 			std::atomic_thread_fence(std::memory_order_release);
 			jvmti->Deallocate((unsigned char *)entries);
@@ -668,7 +685,7 @@ void Profiler::Handle(int signum, siginfo_t *info, void *context) {
 					;
 				std::atomic_thread_fence(std::memory_order_acquire);
 				int index = call_index.fetch_add(1);
-				if (index < 200) {
+				if (index < NUM_CALL_FRAMES) {
 					static_call_frames[index] = curr_frame;
 				}
 				frame_lock = 0;
