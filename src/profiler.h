@@ -118,13 +118,7 @@ class Profiler {
 
   static void printInScopeLineNumberMapping();
 
-  static void HandleBreakpoint(
-          jvmtiEnv *jvmti,
-          JNIEnv *jni_env,
-          jthread thread,
-          jmethodID method_id,
-          jlocation location
-  );
+  static void LogBreakpointHit();
 
   void setScope(std::string package);
 

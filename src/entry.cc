@@ -208,9 +208,28 @@ jint JNICALL setProgressPointNative(JNIEnv *env, jobject thisObj, jstring classN
 
 
    // use your string
-  env->ReleaseStringUTFChars(className, nativeClassName);
+env->ReleaseStringUTFChars(className, nativeClassName);
   return 0;
 }
+
+
+/** @brief Log a progress point hit for the calling thread.
+ *
+ *  Log a progress point hit for the calling thread. This will be
+ *  called as a result of injecting a call to {@code logProgressPointHit}
+ *  in whichever method / line we set as our progress point.
+ *
+ *  @param env The JNI environment
+ *  @param thisObj A pointer to the calling object.
+ *
+ *  @return 0
+ *  @TODO(dcv): Return an error code if we haven't set a progress point.
+ */
+jint JNICALL logProgressPointHitNative(JNIEnv *env, jobject thisObj) {
+  prof->LogBreakpointHit();
+  return 0;
+}
+
 
 jint JNICALL setScopeNative(JNIEnv *env, jobject thisObj, jstring scope) {
   const char *nativeScope = env->GetStringUTFChars(scope, 0);
@@ -249,10 +268,11 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
   logger->info("Successfully found JCoz Profiler class and static methodc to register mbean.");
 
   JNINativeMethod methods[] = {
-       {(char *)"startProfilingNative",   (char *)"()I",                     (void *)&startProfilingNative},
-       {(char *)"endProfilingNative",     (char *)"()I",                     (void *)&endProfilingNative},
-       {(char *)"setProgressPointNative", (char *)"(Ljava/lang/String;I)I",  (void *)&setProgressPointNative},
-       {(char *)"setScopeNative",         (char *)"(Ljava/lang/String;)I",   (void *)&setScopeNative},
+       {(char *)"startProfilingNative",       (char *)"()I",                     (void *)&startProfilingNative},
+       {(char *)"endProfilingNative",         (char *)"()I",                     (void *)&endProfilingNative},
+       {(char *)"setProgressPointNative",     (char *)"(Ljava/lang/String;I)I",  (void *)&setProgressPointNative},
+       {(char *)"setScopeNative",             (char *)"(Ljava/lang/String;)I",   (void *)&setScopeNative},
+       {(char *)"logProgressPointHitNative",  (char *)"()I",                     (void *)&logProgressPointHitNative},
    };
 
   jint err;
@@ -301,7 +321,6 @@ static bool PrepareJvmti(jvmtiEnv *jvmti) {
   caps.can_get_line_numbers = 1;
   caps.can_get_bytecodes = 1;
   caps.can_get_constant_pool = 1;
-  caps.can_generate_breakpoint_events = 1;
 
   jvmtiCapabilities all_caps;
   memset(&all_caps, 0, sizeof(all_caps));
@@ -346,15 +365,14 @@ static bool RegisterJvmti(jvmtiEnv *jvmti) {
 
   callbacks->ClassLoad = &OnClassLoad;
   callbacks->ClassPrepare = &OnClassPrepare;
-  callbacks->Breakpoint = &(Profiler::HandleBreakpoint);
 
   JVMTI_ERROR_1(
       (jvmti->SetEventCallbacks(callbacks, sizeof(jvmtiEventCallbacks))),
       false);
 
-  jvmtiEvent events[] = {JVMTI_EVENT_CLASS_LOAD, JVMTI_EVENT_BREAKPOINT,
-                         JVMTI_EVENT_THREAD_END, JVMTI_EVENT_THREAD_START,
-                         JVMTI_EVENT_VM_DEATH, JVMTI_EVENT_VM_INIT};
+  jvmtiEvent events[] = {JVMTI_EVENT_CLASS_LOAD, JVMTI_EVENT_THREAD_END,
+                         JVMTI_EVENT_THREAD_START, JVMTI_EVENT_VM_DEATH,
+                         JVMTI_EVENT_VM_INIT};
 
   size_t num_events = sizeof(events) / sizeof(jvmtiEvent);
 

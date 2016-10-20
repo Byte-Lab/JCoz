@@ -487,12 +487,12 @@ bool Profiler::thread_in_main(jthread thread) {
 
 void Profiler::addUserThread(jthread thread) {
 	if (thread_in_main(thread)) {
-        logger->debug("Adding user thread");
-		curr_ut = new struct UserThread();
-		curr_ut->thread = pthread_self();
-		curr_ut->local_delay = global_delay;
-		curr_ut->java_thread = thread;
-        	curr_ut->points_hit = 0;
+    logger->debug("Adding user thread");
+    curr_ut = new struct UserThread();
+    curr_ut->thread = pthread_self();
+    curr_ut->local_delay = global_delay;
+    curr_ut->java_thread = thread;
+    curr_ut->points_hit = 0;
 
 		// user threads lock
 		while (!__sync_bool_compare_and_swap(&user_threads_lock, 0, 1))
@@ -859,14 +859,8 @@ void Profiler::setJVMTI(jvmtiEnv *jvmti_env) {
 	jvmti = jvmti_env;
 }
 
-void JNICALL
-Profiler::HandleBreakpoint(
-        jvmtiEnv *jvmti,
-        JNIEnv *jni_env,
-        jthread thread,
-        jmethodID method_id,
-        jlocation location
-) {
+void
+Profiler::LogBreakpointHit() {
     curr_ut->points_hit += in_experiment;
 }
 
