@@ -367,15 +367,17 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
                           fmt::arg("sleep_time", curr_sleep),
                           fmt::arg("remaining_time", total_needed_time - total_accrued_time));
         }
+        logger->info("Done filling up call frames buffer. Trying to run experiment...");
 
 		while (!__sync_bool_compare_and_swap(&frame_lock, 0, 1))
 			;
 		std::atomic_thread_fence(std::memory_order_acquire);
+    logger->info("Acquired call frames lock...");
 		for (int i = 0; (i < call_index) && (i < NUM_CALL_FRAMES); i++) {
 			call_frames.push_back(static_call_frames[i]);
 		}
 		if (call_frames.size() > 0) {
-      logger->debug("Had {} call frames. Checking for in scope call frame...", call_frames.size());
+      logger->info("Had {} call frames. Checking for in scope call frame...", call_frames.size());
 			call_index = 0;
 			std::random_shuffle(call_frames.begin(), call_frames.end());
 			JVMPI_CallFrame exp_frame;
@@ -400,7 +402,7 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
           continue;
       }
 
-      logger->debug("Found in scope frames. Choosing a frame and running experiment...");
+      logger->info("Found in scope frames. Choosing a frame and running experiment...");
 			current_experiment.method_id = exp_frame.method_id;
 			jint start_line;
 			jint end_line; //exclusive
@@ -846,8 +848,10 @@ void Profiler::Stop() {
     logger->info("Profiler finished current cycle...");
 	}
 
-  clearInScopeMethods();
-	signal(SIGPROF, SIG_IGN);
+  // Not clearing in scope methods and undoing signal until I figure out why it's
+  // breaking benchmarks.
+  // clearInScopeMethods();
+	// signal(SIGPROF, SIG_IGN);
   logger->flush();
 }
 
