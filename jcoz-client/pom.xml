@@ -24,6 +24,11 @@
             <scope>system</scope>
             <systemPath>/usr/java/latest/jre/lib/ext/jfxrt.jar</systemPath>
         </dependency>
+        <dependency>
+        	<groupId>org.ow2.asm</groupId>
+        	<artifactId>asm</artifactId>
+        	<version>5.0.3</version>
+        </dependency>
 	</dependencies>
 
 	<build>
