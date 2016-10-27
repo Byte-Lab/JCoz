@@ -83,5 +83,4 @@ public class RemoteServiceWrapper {
 	public int getPort() {
 		return this.port;
 	}
-
 }

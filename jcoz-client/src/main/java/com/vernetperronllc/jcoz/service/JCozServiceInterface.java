@@ -30,7 +30,7 @@ import com.vernetperronllc.jcoz.JCozVMDescriptor;
  * @author matt
  *
  */
-public interface JCozServiceInterface extends Remote{
+public interface JCozServiceInterface extends Remote {
 	
 	public List<JCozVMDescriptor> getJavaProcessDescriptions() throws RemoteException;
 	
@@ -49,6 +49,6 @@ public interface JCozServiceInterface extends Remote{
 	public String getCurrentScope(int pid) throws RemoteException;
 	
 	public String getProgressPoint(int pid) throws RemoteException;
-	
 
+	public int logProgressPointHit(int pid) throws RemoteException;
 }
