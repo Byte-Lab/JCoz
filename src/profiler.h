@@ -59,6 +59,8 @@ struct ProgressPoint {
     jmethodID method_id;
     jint lineno;
     jlocation location;
+    jint *new_class_data_len;
+    unsigned char **new_class_data;
 };
 
 class SignalHandler {
@@ -138,6 +140,13 @@ class Profiler {
 
   void init();
 
+  void applyClassTransform(JNIEnv *jni_env, jbyteArray new_class);
+
+  void transformProgressPointMethod(
+          JNIEnv *jni_env, jint class_data_len,
+          const unsigned char *class_data, jint *new_class_data_len,
+          unsigned char **new_class_data);
+
  private:
 
   jvmtiEnv *jvmti_;
@@ -157,6 +166,8 @@ class Profiler {
   static jobject mbean;
 
   static jmethodID mbean_cache_method_id;
+
+  static jmethodID mbean_transform_pp_method_id;
 
   static std::unordered_set<void *> in_scope_ids;
 

@@ -34,6 +34,7 @@ static Profiler *prof;
 FILE *Globals::OutFile;
 static bool updateEventsEnabledState(jvmtiEnv *jvmti, jvmtiEventMode enabledState);
 static volatile int class_prep_lock = 0;
+static volatile int transform_pp_flag = 0;
 static bool acquireCreateLock(); static void releaseCreateLock();
 
 void JNICALL OnThreadStart(jvmtiEnv *jvmti_env, JNIEnv *jni_env,
@@ -154,7 +155,14 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
       // point set with class A
       std::string progress_pt_str = "L" + prof->getProgressClass();
       if( strstr(ksig.Get(), progress_pt_str.c_str()) == ksig.Get() ) {
+          logger->info("Retransforming progress point class!");
           prof->addProgressPoint(method_count, methods.Get());
+          transform_pp_flag = 1;
+          jvmtiError err = jvmti->RetransformClasses((jint)1, (const jclass*)&klass);
+          if (err != JVMTI_ERROR_NONE) {
+            logger->error("Failed to call RetransformClasses when I wanted to transform the progress point class.");
+            exit(1);
+          }
       }
   }
   if (releaseLock) {
@@ -210,6 +218,11 @@ jint JNICALL setProgressPointNative(JNIEnv *env, jobject thisObj, jstring classN
    // use your string
 env->ReleaseStringUTFChars(className, nativeClassName);
   return 0;
+}
+
+
+jint JNICALL applyClassTransformNative(JNIEnv *env, jobject thisObj, jbyteArray new_class) {
+    prof->applyClassTransform(env, new_class);
 }
 
 
@@ -273,6 +286,7 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
        {(char *)"setProgressPointNative",     (char *)"(Ljava/lang/String;I)I",  (void *)&setProgressPointNative},
        {(char *)"setScopeNative",             (char *)"(Ljava/lang/String;)I",   (void *)&setScopeNative},
        {(char *)"logProgressPointHitNative",  (char *)"()I",                     (void *)&logProgressPointHitNative},
+       {(char *)"applyClassTransformNative",  (char *)"([B)I",                   (void *)&applyClassTransformNative},
    };
 
   jint err;
@@ -296,6 +310,30 @@ void JNICALL OnClassPrepare(jvmtiEnv *jvmti_env, JNIEnv *jni_env,
   // AsyncGetCallTrace.  I imagine it slows down class loading a mite,
   // but honestly, how fast does class loading have to be?
   CreateJMethodIDsForClass(jvmti_env, klass);
+}
+
+/** @brief Possibly retransform a class to log when a progress
+ *  point is hit.
+ * 
+ *  Possibly retransform a class to log when a progress point is hit.
+ *  This should be done when a progress point has been set, and the
+ *  associated class is loaded.
+ */
+void JNICALL OnClassFileLoad(jvmtiEnv *jvmti_env,
+            JNIEnv* jni_env,
+            jclass class_being_redefined,
+            jobject loader,
+            const char* name,
+            jobject protection_domain,
+            jint class_data_len,
+            const unsigned char* class_data,
+            jint* new_class_data_len,
+            unsigned char** new_class_data) {
+
+    if (transform_pp_flag) {
+        prof->transformProgressPointMethod(jni_env, class_data_len, class_data, new_class_data_len, new_class_data);
+        transform_pp_flag = 0;
+    }
 }
 
 void JNICALL OnVMDeath(jvmtiEnv *jvmti_env, JNIEnv *jni_env) {
@@ -364,6 +402,7 @@ static bool RegisterJvmti(jvmtiEnv *jvmti) {
   callbacks->VMDeath = &OnVMDeath;
 
   callbacks->ClassLoad = &OnClassLoad;
+  callbacks->ClassFileLoadHook = &OnClassFileLoad;
   callbacks->ClassPrepare = &OnClassPrepare;
 
   JVMTI_ERROR_1(
@@ -372,7 +411,7 @@ static bool RegisterJvmti(jvmtiEnv *jvmti) {
 
   jvmtiEvent events[] = {JVMTI_EVENT_CLASS_LOAD, JVMTI_EVENT_THREAD_END,
                          JVMTI_EVENT_THREAD_START, JVMTI_EVENT_VM_DEATH,
-                         JVMTI_EVENT_VM_INIT};
+                         JVMTI_EVENT_VM_INIT, JVMTI_EVENT_CLASS_FILE_LOAD_HOOK};
 
   size_t num_events = sizeof(events) / sizeof(jvmtiEvent);
 
