@@ -31,6 +31,8 @@ public interface JCozProfilerMBean {
 	
 	public int setProgressPoint(String className, int lineNo);
 	
+	public int logProgressPointHit();
+	
 	public int setScope(String scope);
 	
 	public byte[] getProfilerOutput() throws IOException;
@@ -38,4 +40,6 @@ public interface JCozProfilerMBean {
 	public String getCurrentScope();
 	
 	public String getProgressPoint();
+	
+	public int transformProgressPointLine();
 }

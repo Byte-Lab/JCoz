@@ -38,12 +38,12 @@ import com.vernetperronllc.jcoz.profile.Profile;
 import com.vernetperronllc.jcoz.service.JCozException;
 import com.vernetperronllc.jcoz.service.VirtualMachineConnectionException;
 
-
 /**
  * @author matt
  *
  */
 public class JCozCLI {
+	public static TargetProcessInterface process;
 
 	public static void main(String[] args) throws ParseException, VirtualMachineConnectionException, JCozException, IOException, InterruptedException{
 		Options ops = new Options();
@@ -93,16 +93,16 @@ public class JCozCLI {
 			try {
 				Profile profile = new Profile(remoteHost, null);
 				final RemoteServiceWrapper remoteService = new RemoteServiceWrapper(remoteHost);
-				TargetProcessInterface profiledClient = remoteService.attachToProcess(pid);
-				profiledClient.setProgressPoint(ppClass, ppLineNo);
-				profiledClient.setScope(scopePkg);
-				profiledClient.startProfiling();
+				JCozCLI.process = remoteService.attachToProcess(pid);
+				JCozCLI.process.setProgressPoint(ppClass, ppLineNo);
+				JCozCLI.process.setScope(scopePkg);
+				JCozCLI.process.startProfiling();
 
 				while (true) {
 					// Sleep for 2 seconds
 					Thread.sleep(2000);
 					
-					List<Experiment> experiments = profiledClient.getProfilerOutput();
+					List<Experiment> experiments = JCozCLI.process.getProfilerOutput();
 					profile.addExperiments(experiments);
 				}
 			} catch (JCozException e) {
@@ -122,7 +122,7 @@ public class JCozCLI {
 				return;
 			}
 			
-			final LocalProcessWrapper wrapper = new LocalProcessWrapper(descriptor);
+			JCozCLI.process = new LocalProcessWrapper(descriptor);
 			//catch SIGINT and end profiling
 			Runtime.getRuntime().addShutdownHook(new Thread()
 	        {
@@ -130,18 +130,18 @@ public class JCozCLI {
 	            public void run()
 	            {
 	                try {
-						wrapper.endProfiling();
+	                	JCozCLI.process.endProfiling();
 						System.exit(0);
 					} catch (JCozException e) {
 						// we are dying, do nothing
 					}
 	            }
 	        });
-			wrapper.setProgressPoint(ppClass, ppLineNo);
-			wrapper.setScope(scopePkg);
-			wrapper.startProfiling();
+			JCozCLI.process.setProgressPoint(ppClass, ppLineNo);
+			JCozCLI.process.setScope(scopePkg);
+			JCozCLI.process.startProfiling();
 			while(true){
-				for(Experiment e : wrapper.getProfilerOutput()){
+				for(Experiment e : JCozCLI.process.getProfilerOutput()){
 					System.out.println(e.toString());
 				}
 				Thread.sleep(1000);

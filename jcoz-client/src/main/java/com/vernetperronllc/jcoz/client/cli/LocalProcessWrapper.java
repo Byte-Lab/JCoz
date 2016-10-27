@@ -55,8 +55,8 @@ public class LocalProcessWrapper implements TargetProcessInterface{
 	
 	private static final String CONNECTOR_ADDRESS_PROPERTY_KEY = "com.sun.management.jmxremote.localConnectorAddress";
 	
-	public LocalProcessWrapper(VirtualMachineDescriptor descriptor) throws VirtualMachineConnectionException{
-		try{
+	public LocalProcessWrapper(VirtualMachineDescriptor descriptor) throws VirtualMachineConnectionException {
+		try {
 			vm = VirtualMachine.attach(descriptor);
 			vm.startLocalManagementAgent();
 			Properties props = vm.getAgentProperties();
@@ -73,41 +73,41 @@ public class LocalProcessWrapper implements TargetProcessInterface{
 	}
 	
 	
-	public void startProfiling() throws JCozException{
+	public void startProfiling() throws JCozException {
 		int returnCode = mbeanProxy.startProfiling();
 		if(returnCode != 0){
 			throw JCozExceptionFactory.getInstance().getJCozExceptionFromErrorCode(returnCode);
 		}
 	}
 	
-	public void endProfiling() throws JCozException{
+	public void endProfiling() throws JCozException {
 		int returnCode = mbeanProxy.endProfiling();
 		if(returnCode != 0){
 			throw JCozExceptionFactory.getInstance().getJCozExceptionFromErrorCode(returnCode);
 		}
 	}
 	
-	public void setProgressPoint(String className, int lineNo) throws JCozException{
+	public void setProgressPoint(String className, int lineNo) throws JCozException {
 		int returnCode = mbeanProxy.setProgressPoint(className, lineNo);
 		if(returnCode != 0){
 			throw JCozExceptionFactory.getInstance().getJCozExceptionFromErrorCode(returnCode);
 		}
 	}
 	
-	public void setScope(String scope) throws JCozException{
+	public void setScope(String scope) throws JCozException {
 		int returnCode = mbeanProxy.setScope(scope);
 		if(returnCode != 0){
 			throw JCozExceptionFactory.getInstance().getJCozExceptionFromErrorCode(returnCode);
 		}
 	}
 	
-	public List<Experiment> getProfilerOutput() throws JCozException{
+	public List<Experiment> getProfilerOutput() throws JCozException {
 		List<Experiment> experiments = new ArrayList<>();
 		ObjectInputStream ois;
 		
 		try {
 			byte[] profOutput = mbeanProxy.getProfilerOutput();
-			if (profOutput == null){
+			if (profOutput == null) {
 				throw new InvalidWhenProfilerNotRunningException();
 			}
 			ois = new ObjectInputStream(new ByteArrayInputStream(profOutput));
@@ -132,5 +132,9 @@ public class LocalProcessWrapper implements TargetProcessInterface{
 	
 	public VirtualMachineDescriptor getDescriptor() {
 		return this.descriptor;
+	}
+
+	public int logProgressPointHit() {
+		return mbeanProxy.logProgressPointHit();
 	}
 }
