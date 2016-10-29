@@ -35,6 +35,7 @@ FILE *Globals::OutFile;
 static bool updateEventsEnabledState(jvmtiEnv *jvmti, jvmtiEventMode enabledState);
 static volatile int class_prep_lock = 0;
 static bool acquireCreateLock(); static void releaseCreateLock();
+static volatile int transform_pp_flag = 0;
 
 void JNICALL OnThreadStart(jvmtiEnv *jvmti_env, JNIEnv *jni_env,
                            jthread thread) {
@@ -65,6 +66,73 @@ void JNICALL OnClassLoad(jvmtiEnv *jvmti_env, JNIEnv *jni_env, jthread thread,
   IMPLICITLY_USE(thread);
   IMPLICITLY_USE(klass);
 }
+
+
+/** @brief Possibly retransform a class to log when a progress
+ *  point is hit.
+ * 
+ *  Possibly retransform a class to log when a progress point is hit.
+ *  This should be done when a progress point has been set, and the
+ *  associated class is loaded.
+ */
+void JNICALL OnClassFileLoad(jvmtiEnv *jvmti_env,
+            JNIEnv* jni_env,
+            jclass class_being_redefined,
+            jobject loader,
+            const char* name,
+            jobject protection_domain,
+            jint class_data_len,
+            const unsigned char* class_data,
+            jint* new_class_data_len,
+            unsigned char** new_class_data) {
+
+    auto logger = prof->getLogger();
+    logger->debug("OnClassFileLoad fired for class {}", name);
+    /* TODO(dcv): Apply this change when we figure out why classes aren't being loaded.
+    if (transform_pp_flag) {
+        prof->transformProgressPointMethod(jni_env, class_data_len, class_data, new_class_data_len, new_class_data);
+        transform_pp_flag = 0;
+    }
+    */
+}
+
+
+/** @brief Apply the transformation that was performed in Java space.
+ *
+ *  Apply the progress point class transformation that was performed in
+ *  Java space. This is done by having the profiler point the new_class_len and
+ *  new_class_data elements at the updated byte array.
+ *
+ *  @param env the JNI environment.
+ *  @param thisObj The object being referenced in the JNI env.
+ *  @param new_class An array of bytes comprising the updated class as passed
+ *  down from the JCozProfiler.
+ */
+jint JNICALL applyClassTransformNative(JNIEnv *env, jobject thisObj, jbyteArray new_class) {
+    // TODO(dcv): Uncomment the line below once we've added
+    // the appropriate function calls to the profiler.
+    // prof->applyClassTransform(env, new_class);
+    return 0;
+}
+
+
+/** @brief Log a progress point hit for the calling thread.
+ *
+ *  Log a progress point hit for the calling thread. This will be
+ *  called as a result of injecting a call to {@code logProgressPointHit}
+ *  in whichever method / line we set as our progress point.
+ *
+ *  @param env The JNI environment
+ *  @param thisObj A pointer to the calling object.
+ *
+ *  @return 0
+ *  @TODO(dcv): Return an error code if we haven't set a progress point.
+ */
+jint JNICALL logProgressPointHitNative(JNIEnv *env, jobject thisObj) {
+  // prof->LogBreakpointHit();
+  return 0;
+}
+
 
 // Create a java thread -- currently used
 // to run profiler thread
@@ -155,6 +223,15 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
       std::string progress_pt_str = "L" + prof->getProgressClass();
       if( strstr(ksig.Get(), progress_pt_str.c_str()) == ksig.Get() ) {
           prof->addProgressPoint(method_count, methods.Get());
+          logger->info("Retransforming progress point class!");
+          transform_pp_flag = 1;
+          jvmtiError err = jvmti->RetransformClasses((jint)1, (const jclass*)&klass);
+          transform_pp_flag = 0;
+          if (err != JVMTI_ERROR_NONE) {
+            logger->error("Failed to call RetransformClasses when I wanted to transform the progress point class.");
+            logger->flush();
+            exit(1);
+          }
       }
   }
   if (releaseLock) {
@@ -249,10 +326,12 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
   logger->info("Successfully found JCoz Profiler class and static methodc to register mbean.");
 
   JNINativeMethod methods[] = {
-       {(char *)"startProfilingNative",   (char *)"()I",                     (void *)&startProfilingNative},
-       {(char *)"endProfilingNative",     (char *)"()I",                     (void *)&endProfilingNative},
-       {(char *)"setProgressPointNative", (char *)"(Ljava/lang/String;I)I",  (void *)&setProgressPointNative},
-       {(char *)"setScopeNative",         (char *)"(Ljava/lang/String;)I",   (void *)&setScopeNative},
+       {(char *)"startProfilingNative",       (char *)"()I",                     (void *)&startProfilingNative},
+       {(char *)"endProfilingNative",         (char *)"()I",                     (void *)&endProfilingNative},
+       {(char *)"setProgressPointNative",     (char *)"(Ljava/lang/String;I)I",  (void *)&setProgressPointNative},
+       {(char *)"setScopeNative",             (char *)"(Ljava/lang/String;)I",   (void *)&setScopeNative},
+       {(char *)"logProgressPointHitNative",  (char *)"()I",                     (void *)&logProgressPointHitNative},
+       {(char *)"applyClassTransformNative",  (char *)"([B)I",                   (void *)&applyClassTransformNative},
    };
 
   jint err;
@@ -301,7 +380,8 @@ static bool PrepareJvmti(jvmtiEnv *jvmti) {
   caps.can_get_line_numbers = 1;
   caps.can_get_bytecodes = 1;
   caps.can_get_constant_pool = 1;
-  caps.can_generate_breakpoint_events = 1;
+  caps.can_retransform_classes = 1;
+  caps.can_retransform_any_class = 1;
 
   jvmtiCapabilities all_caps;
   memset(&all_caps, 0, sizeof(all_caps));
@@ -345,15 +425,15 @@ static bool RegisterJvmti(jvmtiEnv *jvmti) {
   callbacks->VMDeath = &OnVMDeath;
 
   callbacks->ClassLoad = &OnClassLoad;
+  callbacks->ClassFileLoadHook = &OnClassFileLoad;
   callbacks->ClassPrepare = &OnClassPrepare;
-  callbacks->Breakpoint = &(Profiler::HandleBreakpoint);
 
   JVMTI_ERROR_1(
       (jvmti->SetEventCallbacks(callbacks, sizeof(jvmtiEventCallbacks))),
       false);
 
-  jvmtiEvent events[] = {JVMTI_EVENT_CLASS_LOAD, JVMTI_EVENT_BREAKPOINT,
-                         JVMTI_EVENT_THREAD_END, JVMTI_EVENT_THREAD_START,
+  jvmtiEvent events[] = {JVMTI_EVENT_CLASS_LOAD, JVMTI_EVENT_THREAD_END,
+                         JVMTI_EVENT_THREAD_START, JVMTI_EVENT_CLASS_FILE_LOAD_HOOK,
                          JVMTI_EVENT_VM_DEATH, JVMTI_EVENT_VM_INIT};
 
   size_t num_events = sizeof(events) / sizeof(jvmtiEvent);
