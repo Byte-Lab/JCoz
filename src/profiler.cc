@@ -81,6 +81,7 @@ std::atomic_bool Profiler::profile_done(false);
 unsigned long Profiler::experiment_time = MIN_EXP_TIME;
 jobject Profiler::mbean;
 jmethodID Profiler::mbean_cache_method_id;
+jmethodID Profiler::mbean_transform_pp_method_id;
 JNIEnv * Profiler::jni_;
 
 // How long should we wait before starting an experiment
@@ -607,14 +608,20 @@ void Profiler::transformProgressPointMethod(JNIEnv *jni_env, jint class_data_len
     progress_point->new_class_data_len = new_class_data_len;
     progress_point->new_class_data = new_class_data;
     jsize class_data_len_arg = (jsize)class_data_len;
+    logger->info("Creating jbyteArray to pass to transformProgressPointLine");
     jbyteArray origData = jni_env->NewByteArray(class_data_len_arg);
     if (origData == NULL) {
         logger->error("Unable to create new byte array for transforming pp class.");
         exit(1);
     }
+    logger->info(
+            "Filling primitive jbyteArray with data to pass "
+            "to transformProgressPointLine");
     void *temp = jni_env->GetPrimitiveArrayCritical((jarray)origData, 0);
     memcpy(temp, class_data, class_data_len);
+    logger->info("Releasing primitive array");
     jni_env->ReleasePrimitiveArrayCritical(origData, temp, 0);
+    logger->info("Calling transformProgressPointLine");
     jni_env->CallVoidMethod(Profiler::mbean, Profiler::mbean_transform_pp_method_id, origData);
 }
 

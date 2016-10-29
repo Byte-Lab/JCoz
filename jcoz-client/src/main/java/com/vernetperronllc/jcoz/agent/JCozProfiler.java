@@ -291,7 +291,7 @@ public class JCozProfiler implements JCozProfilerMBean {
 	 * natively using log progress point hit.
 	 * @return
 	 */
-	public synchronized int transformProgressPointLine(int len, byte[] existingClass) {
+	public synchronized void transformProgressPointLine(byte[] existingClass) {
 		ClassReader cr = new ClassReader(existingClass);
 		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
 		ClassVisitor cv =
@@ -300,8 +300,8 @@ public class JCozProfiler implements JCozProfilerMBean {
 		cr.accept(cv, 0);
 		
 		byte[] transformedClass = cw.toByteArray();
-		return transformProgressPointLine(transformedClass.length, transformedClass);
+		applyClassTransformNative(transformedClass);
 	}
 	
-	public native int transformProgressPointLine(int len, char []bytes);
+	public native int applyClassTransformNative(byte []bytes);
 }

@@ -41,5 +41,5 @@ public interface JCozProfilerMBean {
 	
 	public String getProgressPoint();
 	
-	public int transformProgressPointLine();
+	public void transformProgressPointLine(byte[] existingClass);
 }

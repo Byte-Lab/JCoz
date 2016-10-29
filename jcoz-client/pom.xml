@@ -22,7 +22,11 @@
 			<artifactId>jfxrt</artifactId>
             <version>1.0</version>
             <scope>system</scope>
+            <!-- Latedays jfxrt path.
             <systemPath>/usr/java/latest/jre/lib/ext/jfxrt.jar</systemPath>
+            -->
+            <!-- tsh jfxrt path. -->
+            <systemPath>/usr/lib/jvm/java-1.8.0-oracle/jre/lib/ext/jfxrt.jar</systemPath>
         </dependency>
         <dependency>
         	<groupId>org.ow2.asm</groupId>

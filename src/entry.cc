@@ -65,6 +65,9 @@ void JNICALL OnClassLoad(jvmtiEnv *jvmti_env, JNIEnv *jni_env, jthread thread,
   IMPLICITLY_USE(jni_env);
   IMPLICITLY_USE(thread);
   IMPLICITLY_USE(klass);
+  JvmtiScopedPtr<char> ksig(jvmti_env);
+  jvmti_env->GetClassSignature(klass, ksig.GetRef(), NULL);
+  prof->getLogger()->info("OnClassLoad fired for class {}", ksig.Get());
 }
 
 // Create a java thread -- currently used
@@ -268,14 +271,12 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
   jclass cls = jni_env->FindClass("com/vernetperronllc/jcoz/agent/JCozProfiler");
   if (cls == nullptr){
       logger->error("Could not find JCoz Profiler class, did you add the jar to the classpath?");
-      fprintf(stderr, "Could not find JCoz Profiler class, did you add the jar to the classpath?\n");
       exit(-1);
   }
   logger->info("Found JCozProfiler class. Trying to find register profiler method.");
   jmethodID mid = jni_env->GetStaticMethodID(cls, "registerProfilerWithMBeanServer", "()V");
   if (mid == nullptr){
       logger->error("Could not find static method to register the mbean.");
-      fprintf(stderr, "Could not find static method to register the mbean.\n");
       exit(-1);
   }
   logger->info("Successfully found JCoz Profiler class and static methodc to register mbean.");
@@ -330,10 +331,20 @@ void JNICALL OnClassFileLoad(jvmtiEnv *jvmti_env,
             jint* new_class_data_len,
             unsigned char** new_class_data) {
 
+    auto logger = prof->getLogger();
+    logger->info("OnClassFileLoad called for class {} with transform flag {}", name, transform_pp_flag);
     if (transform_pp_flag) {
+        logger->info("Transforming class {}", name);
         prof->transformProgressPointMethod(jni_env, class_data_len, class_data, new_class_data_len, new_class_data);
         transform_pp_flag = 0;
     }
+   
+    /*
+    else {
+        *new_class_data_len = class_data_len;
+        *new_class_data = (unsigned char *)class_data;
+    }
+    */
 }
 
 void JNICALL OnVMDeath(jvmtiEnv *jvmti_env, JNIEnv *jni_env) {
@@ -359,6 +370,8 @@ static bool PrepareJvmti(jvmtiEnv *jvmti) {
   caps.can_get_line_numbers = 1;
   caps.can_get_bytecodes = 1;
   caps.can_get_constant_pool = 1;
+  caps.can_retransform_classes = 1;
+  caps.can_retransform_any_class = 1;
 
   jvmtiCapabilities all_caps;
   memset(&all_caps, 0, sizeof(all_caps));
