@@ -81,6 +81,7 @@ std::atomic_bool Profiler::profile_done(false);
 unsigned long Profiler::experiment_time = MIN_EXP_TIME;
 jobject Profiler::mbean;
 jmethodID Profiler::mbean_cache_method_id;
+jmethodID Profiler::mbean_transform_pp_method_id;
 JNIEnv * Profiler::jni_;
 
 // How long should we wait before starting an experiment
@@ -602,6 +603,37 @@ void Profiler::addProgressPoint(jint method_count, jmethodID *methods) {
 	}
 }
 
+
+void Profiler::transformProgressPointMethod(JNIEnv *jni_env, jint class_data_len, const unsigned char *class_data, jint *new_class_data_len, unsigned char **new_class_data) {
+
+    progress_point->new_class_data_len = new_class_data_len;
+    progress_point->new_class_data = new_class_data;
+    jsize class_data_len_arg = (jsize)class_data_len;
+    jbyteArray origData = jni_env->NewByteArray(class_data_len_arg);
+    if (origData == NULL) {
+        logger->error("Unable to create new byte array for transforming pp class.");
+        logger->flush();
+        exit(1);
+    }
+    void *temp = jni_env->GetPrimitiveArrayCritical((jarray)origData, 0);
+    memcpy(temp, class_data, class_data_len);
+    jni_env->ReleasePrimitiveArrayCritical(origData, temp, 0);
+    logger->info("Calling Java transform function. Orig data length: {}", class_data_len);
+    jni_env->CallVoidMethod(Profiler::mbean, Profiler::mbean_transform_pp_method_id, origData);
+}
+
+
+void Profiler::applyClassTransform(JNIEnv *jni_env, jbyteArray new_class) {
+    int len = jni_env->GetArrayLength(new_class);
+    logger->info("applying class transformation natively. New class len: {}", len);
+    *(progress_point->new_class_data_len) = len;
+    unsigned char *buf = new unsigned char [len + 1];
+    memset(buf, 0, len + 1);
+    jni_env->GetByteArrayRegion(new_class, 0, len, reinterpret_cast<jbyte*>(buf));
+    *(progress_point->new_class_data) = buf;
+}
+
+
 void Profiler::setMBeanObject(jobject mbean){
 	if (jni_ == nullptr){
 		fprintf(stderr, "jni_ not set\n");
@@ -621,7 +653,14 @@ void Profiler::setMBeanObject(jobject mbean){
 	if (Profiler::mbean_cache_method_id == nullptr){
 			fprintf(stderr, "could not get method id\n");
 			fflush(stderr);
-		}
+    }
+
+    mbean_transform_pp_method_id = jni_->GetMethodID(mbeanClass, "transformProgressPointLine", "([B)V");
+    if (Profiler::mbean_transform_pp_method_id == nullptr) {
+        logger->error("could not get transform progress point line method id\n");
+        logger->flush();
+        exit(1);
+    }
 }
 
 jobject Profiler::getMBeanObject(){
@@ -859,14 +898,9 @@ void Profiler::setJVMTI(jvmtiEnv *jvmti_env) {
 	jvmti = jvmti_env;
 }
 
-void JNICALL
-Profiler::HandleBreakpoint(
-        jvmtiEnv *jvmti,
-        JNIEnv *jni_env,
-        jthread thread,
-        jmethodID method_id,
-        jlocation location
-) {
+
+void
+Profiler::LogBreakpointHit() {
+    logger->info("Progress point hit");
     curr_ut->points_hit += in_experiment;
 }
-

@@ -50,14 +50,10 @@ public class TestThreadSerial {
 		for (int i = 0; i < numThreads; i++) 
 			threads.add(new ParallelWorker());
 		
-    long start = System.currentTimeMillis();
 		while (true) {
 			doParallel();
 			doSerial();
-      sendRequest();
-      if (System.currentTimeMillis() - start >= 3590000) {
-        break;
-      }
+            sendRequest();
 		}
 	}
 

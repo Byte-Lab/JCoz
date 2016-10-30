@@ -29,6 +29,7 @@
 #include "globals.h"
 #include "profiler.h"
 #include "stacktraces.h"
+#include "spdlog/spdlog.h"
 
 static Profiler *prof;
 FILE *Globals::OutFile;
@@ -88,31 +89,10 @@ void JNICALL OnClassFileLoad(jvmtiEnv *jvmti_env,
 
     auto logger = prof->getLogger();
     logger->debug("OnClassFileLoad fired for class {}", name);
-    /* TODO(dcv): Apply this change when we figure out why classes aren't being loaded.
     if (transform_pp_flag) {
-        prof->transformProgressPointMethod(jni_env, class_data_len, class_data, new_class_data_len, new_class_data);
         transform_pp_flag = 0;
+        prof->transformProgressPointMethod(jni_env, class_data_len, class_data, new_class_data_len, new_class_data);
     }
-    */
-}
-
-
-/** @brief Apply the transformation that was performed in Java space.
- *
- *  Apply the progress point class transformation that was performed in
- *  Java space. This is done by having the profiler point the new_class_len and
- *  new_class_data elements at the updated byte array.
- *
- *  @param env the JNI environment.
- *  @param thisObj The object being referenced in the JNI env.
- *  @param new_class An array of bytes comprising the updated class as passed
- *  down from the JCozProfiler.
- */
-jint JNICALL applyClassTransformNative(JNIEnv *env, jobject thisObj, jbyteArray new_class) {
-    // TODO(dcv): Uncomment the line below once we've added
-    // the appropriate function calls to the profiler.
-    // prof->applyClassTransform(env, new_class);
-    return 0;
 }
 
 
@@ -129,8 +109,27 @@ jint JNICALL applyClassTransformNative(JNIEnv *env, jobject thisObj, jbyteArray 
  *  @TODO(dcv): Return an error code if we haven't set a progress point.
  */
 jint JNICALL logProgressPointHitNative(JNIEnv *env, jobject thisObj) {
-  // prof->LogBreakpointHit();
+  prof->LogBreakpointHit();
   return 0;
+}
+
+
+/** @brief Apply the transformation that was performed in Java space.
+ *
+ *  Apply the progress point class transformation that was performed in
+ *  Java space. This is done by having the profiler point the new_class_len and
+ *  new_class_data elements at the updated byte array.
+ *
+ *  @param env the JNI environment.
+ *  @param thisObj The object being referenced in the JNI env.
+ *  @param new_class An array of bytes comprising the updated class as passed
+ *  down from the JCozProfiler.
+ */
+jint JNICALL applyClassTransformNative(JNIEnv *env, jobject thisObj, jbyteArray new_class) {
+    prof->getLogger()->info("applyClassTransformNative fired");
+    prof->getLogger()->flush();
+    prof->applyClassTransform(env, new_class);
+    return 0;
 }
 
 
@@ -138,7 +137,7 @@ jint JNICALL logProgressPointHitNative(JNIEnv *env, jobject thisObj) {
 // to run profiler thread
 jthread create_thread(JNIEnv *jni_env) {
     auto logger = prof->getLogger();
-    logger->info("Creating a thread in create_thread");
+    logger->debug("Creating a thread in create_thread");
     jclass cls = jni_env->FindClass("java/lang/Thread");
     if( cls == NULL ) {
         exit(1);
@@ -162,7 +161,7 @@ jthread create_thread(JNIEnv *jni_env) {
  */
 static bool updateEventsEnabledState(jvmtiEnv *jvmti, jvmtiEventMode enabledState) {
     auto logger = prof->getLogger();
-    logger->info("Setting CLASS_PREPARE to enabled");
+    logger->debug("Setting CLASS_PREPARE to enabled");
   JVMTI_ERROR_1(
     (jvmti->SetEventNotificationMode(enabledState, JVMTI_EVENT_CLASS_PREPARE, NULL)),
     false);
@@ -195,12 +194,12 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
 		return;
   }
   auto logger = prof->getLogger();
-  logger->info("In CreateJMethodIDsForClass start");
+  logger->debug("In CreateJMethodIDsForClass start");
   bool releaseLock = acquireCreateLock();
   jint method_count;
   JvmtiScopedPtr<jmethodID> methods(jvmti);
   jvmtiError e = jvmti->GetClassMethods(klass, &method_count, methods.GetRef());
-  logger->info("Got class methods from the JVM");
+  logger->debug("Got class methods from the JVM");
   if (e != JVMTI_ERROR_NONE) {
     JvmtiScopedPtr<char> ksig(jvmti);
     JVMTI_ERROR((jvmti->GetClassSignature(klass, ksig.GetRef(), NULL)));
@@ -210,7 +209,7 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
       jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
 
       std::string package_str = "L" + prof->getPackage();
-      logger->info(
+      logger->debug(
           "Creating JMethod IDs. [Class: {class}] [Scope: {scope}]",
           fmt::arg("class", ksig.Get()), fmt::arg("scope", package_str));
       if( strstr(ksig.Get(), package_str.c_str()) == ksig.Get() ) {
@@ -223,15 +222,21 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
       std::string progress_pt_str = "L" + prof->getProgressClass();
       if( strstr(ksig.Get(), progress_pt_str.c_str()) == ksig.Get() ) {
           prof->addProgressPoint(method_count, methods.Get());
-          logger->info("Retransforming progress point class!");
+          logger->info("Retransforming progress point class");
           transform_pp_flag = 1;
           jvmtiError err = jvmti->RetransformClasses((jint)1, (const jclass*)&klass);
           transform_pp_flag = 0;
           if (err != JVMTI_ERROR_NONE) {
-            logger->error("Failed to call RetransformClasses when I wanted to transform the progress point class.");
+            logger->error("Failed to call RetransformClasses when I wanted to transform the progress point class. Error: {}", err);
+            fprintf(
+                    stderr,
+                    "Failed to call RetransformClasses when I wanted to "
+                    "transform the progress point class. Error: %d\n",
+                    err);
             logger->flush();
             exit(1);
           }
+          logger->info("Successfully retransformed progress point class");
       }
   }
   if (releaseLock) {
@@ -258,7 +263,7 @@ jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
       jclass klass = classList[i];
       JvmtiScopedPtr<char> ksig(jvmti);
       jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
-      logger->info("Loading class {}", ksig.Get());
+      logger->debug("Loading class {}", ksig.Get());
       CreateJMethodIDsForClass(jvmti, klass);
    }
 
@@ -309,6 +314,18 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
   // register mbean
 
   auto logger = prof->getLogger();
+  logger->info("Trying to find ProgressPointLogClassAdapter");
+  jclass progress_cls = jni_env->FindClass(
+          "com/vernetperronllc/jcoz/progress/ProgressPointLogClassAdapter");
+  if (progress_cls == nullptr){
+      logger->error(
+              "Could not find ProgressPointLogClassAdapter class, "
+              "did you add the jar to the classpath?");
+      fprintf(stderr,
+              "Could not find ProgressPointLogClassAdapter class, "
+              "did you add the jar to the classpath?\n");
+      exit(-1);
+  }
   logger->info("Trying to find JCozProfiler class");
   jclass cls = jni_env->FindClass("com/vernetperronllc/jcoz/agent/JCozProfiler");
   if (cls == nullptr){
@@ -335,11 +352,11 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
    };
 
   jint err;
-  logger->info("Registering native methods..");
+  logger->info("Registering native methods.");
   err = jni_env->RegisterNatives(cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
   if (err != JVMTI_ERROR_NONE){
-    fprintf(stderr, "Could not register natives with error %d\n", err);
-    return;
+      logger->error("Unable to register native methods. Error: {}", err);
+      exit(1);
   }
   logger->info("Registered native methods. Registering profiler with MBean server...");
   jni_env->CallStaticVoidMethod(cls, mid);
@@ -405,6 +422,8 @@ static bool PrepareJvmti(jvmtiEnv *jvmti) {
 
     // This adds the capabilities.
     if ((error = jvmti->AddCapabilities(&caps)) != JVMTI_ERROR_NONE) {
+        prof->getLogger()->error("Failed to add capabilities with error {}",
+                                 error);
       fprintf(stderr, "Failed to add capabilities with error %d\n", error);
       return false;
     }
@@ -451,33 +470,6 @@ static bool RegisterJvmti(jvmtiEnv *jvmti) {
   return true;
 }
 
-#define POSITIVE(x) (static_cast<size_t>(x > 0 ? x : 0))
-
-static void SetFileFromOption(char *equals) {
-  char *name_begin = equals + 1;
-  char *name_end;
-  if ((name_end = strchr(equals, ',')) == NULL) {
-    name_end = equals + strlen(equals);
-  }
-  size_t len = POSITIVE(name_end - name_begin);
-  char *file_name = new char[len];
-  strncpy(file_name, name_begin, len);
-  if (strcmp(file_name, "stderr") == 0) {
-    Globals::OutFile = stderr;
-  } else if (strcmp(file_name, "stdout") == 0) {
-    Globals::OutFile = stdout;
-  } else {
-    Globals::OutFile = fopen(file_name, "w+");
-    if (Globals::OutFile == NULL) {
-      fprintf(stderr, "Could not open file %s: ", file_name);
-      perror(NULL);
-      exit(1);
-    }
-  }
-
-  delete[] file_name;
-}
-
 AGENTEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options,
                                       void *reserved) {
   IMPLICITLY_USE(reserved);
@@ -496,22 +488,20 @@ AGENTEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options,
 //  prof->ParseOptions(options);
 
   if (!PrepareJvmti(jvmti)) {
-    fprintf(stderr, "Failed to initialize JVMTI.  Continuing...\n");
-    return 0;
+      fprintf(stderr, "Failed to prepare JVMTI.\n");
+      exit(1);
   }
 
   if (!RegisterJvmti(jvmti)) {
-    fprintf(stderr, "Failed to enable JVMTI events.  Continuing...\n");
-    // We fail hard here because we may have failed in the middle of
-    // registering callbacks, which will leave the system in an
-    // inconsistent state.
-    return 1;
+      fprintf(stderr, "Failed to enable JVMTI events.\n");
+      exit(1);
   }
 
   Asgct::SetAsgct(Accessors::GetJvmFunction<ASGCTType>("AsyncGetCallTrace"));
 
   prof = new Profiler(jvmti);
   auto logger = prof->getLogger();
+  // logger->set_level(spdlog::level::debug);
 
   prof->setJVMTI(jvmti);
   prof->init();

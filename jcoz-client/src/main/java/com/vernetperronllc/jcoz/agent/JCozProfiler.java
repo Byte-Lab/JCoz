@@ -35,7 +35,13 @@ import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+
 import com.vernetperronllc.jcoz.profile.Experiment;
+import com.vernetperronllc.jcoz.progress.ProgressPointLogClassAdapter;
 
 /**
  * Implementation of the mbean, controls the underlying native profiler
@@ -134,6 +140,57 @@ public class JCozProfiler implements JCozProfilerMBean {
 	}
 
 	private native int setProgressPointNative(String className, int lineNo);
+
+
+    /**
+     * Call down natively into the profiler and log a progress point hit.
+     * This is necessary because the JVM runs in "dynamic de-optimization"
+     * mode when firing a breakpoint handler. See
+     * http://www.oracle.com/technetwork/java/whitepaper-135217.html#dynamic
+     * for a description of dynamic de-optimization. Note that this method is
+     * injected just before the progress point line in the profiled library. 
+     * 
+     * @return The native method return code.
+     */
+    public synchronized int logProgressPointHit() {
+        if (!experimentRunning_) {
+            return JCozProfilingErrorCodes.CANNOT_CALL_WHEN_RUNNING;
+        }
+        
+        int returnCode = logProgressPointHitNative();
+        if (returnCode == JCozProfilingErrorCodes.NO_PROGRESS_POINT_SET) {
+            System.err.println("Tried to log progress point before one was set");
+        }
+        
+        return returnCode;
+    }
+    
+    private native int logProgressPointHitNative();
+
+
+    /**
+     * Transform the class containing the given progress point to call down
+     * natively using log progress point hit.
+     *
+     * @param existingClass The existing class to change.
+     * @return Whether or not the class was successfully transformed.
+     */
+    public synchronized void transformProgressPointLine(byte[] existingClass) {
+        System.out.println("Transformation function started. Existing class len: " + existingClass.length);
+        ClassReader cr = new ClassReader(existingClass);
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+        ClassVisitor cv =
+                new ProgressPointLogClassAdapter(cw, progressPointLineNo_);
+        cr.accept(cv, 0);
+        System.out.println("After accept.");
+        
+        System.out.println("Applying class transformation natively.");
+        applyClassTransformNative(cw.toByteArray());
+        System.out.println("Transformation function ended.");
+    }
+    
+    public native int applyClassTransformNative(byte []bytes);
+
 
 	/**
 	 * get the serialized output from recently run experiments
