@@ -36,7 +36,7 @@ FILE *Globals::OutFile;
 static bool updateEventsEnabledState(jvmtiEnv *jvmti, jvmtiEventMode enabledState);
 static volatile int class_prep_lock = 0;
 static bool acquireCreateLock(); static void releaseCreateLock();
-static volatile int transform_pp_flag = 0;
+static volatile int transform_pp = 0;
 
 void JNICALL OnThreadStart(jvmtiEnv *jvmti_env, JNIEnv *jni_env,
                            jthread thread) {
@@ -88,11 +88,13 @@ void JNICALL OnClassFileLoad(jvmtiEnv *jvmti_env,
             unsigned char** new_class_data) {
 
     auto logger = prof->getLogger();
-    logger->debug("OnClassFileLoad fired for class {}", name);
-    if (transform_pp_flag) {
-        transform_pp_flag = 0;
-        prof->transformProgressPointMethod(jni_env, class_data_len, class_data, new_class_data_len, new_class_data);
+    if (!transform_pp || strcmp(name, "test/TestThreadSerial")) {
+        logger->info("NOT transforming class {}", name);
+        return;
     }
+    transform_pp = 0;
+    logger->info("Transforming class {}", name);
+    prof->transformProgressPointMethod(jni_env, class_data_len, class_data, new_class_data_len, new_class_data);
 }
 
 
@@ -189,9 +191,9 @@ static void releaseCreateLock() {
 
 // Calls GetClassMethods on a given class to force the creation of
 // jmethodIDs of it.
-void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
+int CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
   if (!prof->isRunning()){
-		return;
+		return 0;
   }
   auto logger = prof->getLogger();
   logger->debug("In CreateJMethodIDsForClass start");
@@ -200,9 +202,13 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
   JvmtiScopedPtr<jmethodID> methods(jvmti);
   jvmtiError e = jvmti->GetClassMethods(klass, &method_count, methods.GetRef());
   logger->debug("Got class methods from the JVM");
+  int hit_pp = 0;
   if (e != JVMTI_ERROR_NONE) {
     JvmtiScopedPtr<char> ksig(jvmti);
-    JVMTI_ERROR((jvmti->GetClassSignature(klass, ksig.GetRef(), NULL)));
+    e = jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
+    if (e != JVMTI_ERROR_NONE) {
+        logger->error("Unable Get class");
+    }
     logger->error("Failed to create method IDs for methods in class {} with error {}", ksig.Get(), e);
   } else {
       JvmtiScopedPtr<char> ksig(jvmti);
@@ -214,7 +220,6 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
           fmt::arg("class", ksig.Get()), fmt::arg("scope", package_str));
       if( strstr(ksig.Get(), package_str.c_str()) == ksig.Get() ) {
           prof->addInScopeMethods(method_count, methods.Get());
-
       }
 
       //TODO: this matches a prefix. class name AA will match a progress
@@ -222,26 +227,14 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
       std::string progress_pt_str = "L" + prof->getProgressClass();
       if( strstr(ksig.Get(), progress_pt_str.c_str()) == ksig.Get() ) {
           prof->addProgressPoint(method_count, methods.Get());
-          logger->info("Retransforming progress point class");
-          transform_pp_flag = 1;
-          jvmtiError err = jvmti->RetransformClasses((jint)1, (const jclass*)&klass);
-          transform_pp_flag = 0;
-          if (err != JVMTI_ERROR_NONE) {
-            logger->error("Failed to call RetransformClasses when I wanted to transform the progress point class. Error: {}", err);
-            fprintf(
-                    stderr,
-                    "Failed to call RetransformClasses when I wanted to "
-                    "transform the progress point class. Error: %d\n",
-                    err);
-            logger->flush();
-            exit(1);
-          }
-          logger->info("Successfully retransformed progress point class");
+          hit_pp = 1;
       }
   }
   if (releaseLock) {
     releaseCreateLock();
   }
+
+  return hit_pp;
 }
 
 jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
@@ -259,15 +252,33 @@ jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
    updateEventsEnabledState(jvmti, JVMTI_ENABLE);
    jvmti->GetLoadedClasses(&class_count, classes.GetRef());
    jclass *classList = classes.Get();
+   jclass *pp_klass;
    for (int i = 0; i < class_count; ++i) {
       jclass klass = classList[i];
       JvmtiScopedPtr<char> ksig(jvmti);
       jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
       logger->debug("Loading class {}", ksig.Get());
-      CreateJMethodIDsForClass(jvmti, klass);
+      if (CreateJMethodIDsForClass(jvmti, klass) > 0) {
+          pp_klass = &klass;
+      }
    }
 
    jthread agent_thread = create_thread(env);
+   logger->info("Retransforming progress point class");
+   transform_pp = 1;
+   logger->info("Progress point class: {}", (void *)pp_klass);
+   jvmtiError err = jvmti->RetransformClasses((jint)2, (const jclass*)pp_klass);
+   if (err != JVMTI_ERROR_NONE) {
+       logger->error("Failed to call RetransformClasses when I wanted to transform the progress point class. Error: {}", err);
+       fprintf(
+               stderr,
+               "Failed to call RetransformClasses when I wanted to "
+               "transform the progress point class. Error: %d\n",
+               err);
+       logger->flush();
+       exit(1);
+   }
+   logger->info("Successfully retransformed progress point class");
    jvmtiError agentErr = jvmti->RunAgentThread(agent_thread, &Profiler::runAgentThread, NULL, 1);
    return 0;
 }

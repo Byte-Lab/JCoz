@@ -22,6 +22,6 @@ public class ProgressPointMethodAdapter extends MethodVisitor implements Opcodes
 	        mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
 		}
 		
-		mv.visitLineNumber(line, start);
+		super.visitLineNumber(line, start);
 	}
 }

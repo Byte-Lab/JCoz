@@ -595,7 +595,6 @@ void Profiler::addProgressPoint(jint method_count, jmethodID *methods) {
             if( curr_lineno == (progress_point->lineno) ) {
                 progress_point->method_id = methods[i];
                 progress_point->location = curr_entry.start_location;
-                jvmti->SetBreakpoint(progress_point->method_id, progress_point->location);
                 logger->info("Progress point set");
                 return;
             }
@@ -608,6 +607,7 @@ void Profiler::transformProgressPointMethod(JNIEnv *jni_env, jint class_data_len
 
     progress_point->new_class_data_len = new_class_data_len;
     progress_point->new_class_data = new_class_data;
+    /*
     jsize class_data_len_arg = (jsize)class_data_len;
     jbyteArray origData = jni_env->NewByteArray(class_data_len_arg);
     if (origData == NULL) {
@@ -618,8 +618,12 @@ void Profiler::transformProgressPointMethod(JNIEnv *jni_env, jint class_data_len
     void *temp = jni_env->GetPrimitiveArrayCritical((jarray)origData, 0);
     memcpy(temp, class_data, class_data_len);
     jni_env->ReleasePrimitiveArrayCritical(origData, temp, 0);
-    logger->info("Calling Java transform function. Orig data length: {}", class_data_len);
-    jni_env->CallVoidMethod(Profiler::mbean, Profiler::mbean_transform_pp_method_id, origData);
+    */
+    logger->info("Calling Java transform function.");
+    logger->flush();
+    //jni_env->CallVoidMethod(Profiler::mbean, Profiler::mbean_transform_pp_method_id, origData);
+    jni_env->CallVoidMethod(Profiler::mbean, Profiler::mbean_transform_pp_method_id);
+
 }
 
 
@@ -655,7 +659,7 @@ void Profiler::setMBeanObject(jobject mbean){
 			fflush(stderr);
     }
 
-    mbean_transform_pp_method_id = jni_->GetMethodID(mbeanClass, "transformProgressPointLine", "([B)V");
+    mbean_transform_pp_method_id = jni_->GetMethodID(mbeanClass, "transformProgressPointLine", "()V");
     if (Profiler::mbean_transform_pp_method_id == nullptr) {
         logger->error("could not get transform progress point line method id\n");
         logger->flush();

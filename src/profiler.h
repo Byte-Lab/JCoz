@@ -155,6 +155,8 @@ class Profiler {
 
   void LogBreakpointHit();
 
+  static struct ProgressPoint *progress_point;
+
  private:
 
   jvmtiEnv *jvmti_;
@@ -222,8 +224,6 @@ class Profiler {
   static std::string package;
 
   static void print_usage();
-
-  static struct ProgressPoint *progress_point;
 
   static std::string progress_class;
 

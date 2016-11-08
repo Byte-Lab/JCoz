@@ -175,18 +175,30 @@ public class JCozProfiler implements JCozProfilerMBean {
      * @param existingClass The existing class to change.
      * @return Whether or not the class was successfully transformed.
      */
-    public synchronized void transformProgressPointLine(byte[] existingClass) {
-        System.out.println("Transformation function started. Existing class len: " + existingClass.length);
-        ClassReader cr = new ClassReader(existingClass);
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-        ClassVisitor cv =
-                new ProgressPointLogClassAdapter(cw, progressPointLineNo_);
-        cr.accept(cv, 0);
-        System.out.println("After accept.");
-        
-        System.out.println("Applying class transformation natively.");
-        applyClassTransformNative(cw.toByteArray());
-        System.out.println("Transformation function ended.");
+    public synchronized void transformProgressPointLine() {
+        System.out.println(
+                "Performing bytecode replacement for class: " + this.progressPointClass_ +
+                " on line number: " + this.progressPointLineNo_);
+        try {
+            ClassReader cr = new ClassReader(this.progressPointClass_);
+            System.out.println("After ClassReader instantiation");
+            ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+            System.out.println("After ClassWriter instantiation");
+            ClassVisitor cv =
+                    new ProgressPointLogClassAdapter(cw, progressPointLineNo_);
+            System.out.println("After ClassVisitor instantiation");
+            cr.accept(cv, 0);
+            System.out.println("After cv accept.");
+            
+            System.out.println("Applying class transformation natively.");
+            applyClassTransformNative(cw.toByteArray());
+            System.out.println("Transformation function ended.");
+        } catch (Exception e) {
+            System.err.println("Class transformation could not be completed. Error message: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            System.err.println("Going back to native code from finally");
+        }
     }
     
     public native int applyClassTransformNative(byte []bytes);
