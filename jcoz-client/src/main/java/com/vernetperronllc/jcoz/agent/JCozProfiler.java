@@ -35,11 +35,6 @@ import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
-
 import com.vernetperronllc.jcoz.profile.Experiment;
 import com.vernetperronllc.jcoz.progress.ProgressPointLogClassAdapter;
 
@@ -285,23 +280,4 @@ public class JCozProfiler implements JCozProfilerMBean {
 		}
 
 	}
-
-	/**
-	 * Transform the class containing the given progress point to call down
-	 * natively using log progress point hit.
-	 * @return
-	 */
-	public synchronized int transformProgressPointLine(int len, byte[] existingClass) {
-		ClassReader cr = new ClassReader(existingClass);
-		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-		ClassVisitor cv =
-				new ProgressPointLogClassAdapter(cw, progressPointLineNo_);
-		
-		cr.accept(cv, 0);
-		
-		byte[] transformedClass = cw.toByteArray();
-		return transformProgressPointLine(transformedClass.length, transformedClass);
-	}
-	
-	public native int transformProgressPointLine(int len, char []bytes);
 }

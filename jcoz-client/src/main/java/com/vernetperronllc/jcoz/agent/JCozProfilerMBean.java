@@ -40,6 +40,4 @@ public interface JCozProfilerMBean {
 	public String getCurrentScope();
 	
 	public String getProgressPoint();
-	
-	public int transformProgressPointLine();
 }
