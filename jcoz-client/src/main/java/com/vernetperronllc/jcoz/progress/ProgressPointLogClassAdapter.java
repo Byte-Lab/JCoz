@@ -15,6 +15,12 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
 
+/*
+import com.vernetperronllc.jcoz.agent;
+import com.vernetperronllc.jcoz.client.cli;
+*/
+
+
 /**
  * A class for transforming a line where a progress point has been listed
  * to increment the progress point counter.
@@ -49,9 +55,8 @@ class ProgressPointMethodAdapter extends MethodVisitor implements Opcodes {
 	public void visitLineNumber(int line, Label start) {
 		// If we're at the line, transform it to call logProgressPointHit.
 		if (line == this.lineNum) {
-	        mv.visitFieldInsn(GETSTATIC, "java/lang/System", "err", "Ljava/io/PrintStream;");
-	        mv.visitLdcInsn("CLASS INSTRUMENTED -- label is " + start);
-	        mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
+	        mv.visitFieldInsn(GETSTATIC, "com/vernetperronllc/jcoz/client/cli/JCozCLI", "process", "Lcom/vernetperronllc/jcoz/client/cli/TargetProcessInterface;");
+	        mv.visitMethodInsn(INVOKEVIRTUAL, "com/vernetperronllc/jcoz/client/cli/TargetPRocessInterface", "logProgressPointHit", "()I", true);
 		}
 		
 		mv.visitLineNumber(line, start);
