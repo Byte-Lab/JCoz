@@ -594,7 +594,6 @@ void Profiler::addProgressPoint(jint method_count, jmethodID *methods) {
             if( curr_lineno == (progress_point->lineno) ) {
                 progress_point->method_id = methods[i];
                 progress_point->location = curr_entry.start_location;
-                jvmti->SetBreakpoint(progress_point->method_id, progress_point->location);
                 logger->info("Progress point set");
                 return;
             }
@@ -860,13 +859,8 @@ void Profiler::setJVMTI(jvmtiEnv *jvmti_env) {
 }
 
 void JNICALL
-Profiler::HandleBreakpoint(
-        jvmtiEnv *jvmti,
-        JNIEnv *jni_env,
-        jthread thread,
-        jmethodID method_id,
-        jlocation location
-) {
+Profiler::LogProgressPointHit() {
+    logger->info("Progress point hit");
     curr_ut->points_hit += in_experiment;
 }
 

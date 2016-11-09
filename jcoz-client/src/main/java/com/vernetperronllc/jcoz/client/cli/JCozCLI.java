@@ -43,7 +43,8 @@ import com.vernetperronllc.jcoz.service.VirtualMachineConnectionException;
  *
  */
 public class JCozCLI {
-	public static TargetProcessInterface process;
+	public static TargetProcessInterface process = null;
+    public static boolean profilingStarted = false;
 
 	public static void main(String[] args) throws ParseException, VirtualMachineConnectionException, JCozException, IOException, InterruptedException{
 		Options ops = new Options();
@@ -97,6 +98,7 @@ public class JCozCLI {
 				JCozCLI.process.setProgressPoint(ppClass, ppLineNo);
 				JCozCLI.process.setScope(scopePkg);
 				JCozCLI.process.startProfiling();
+                JCozCLI.profilingStarted = true;
 
 				while (true) {
 					// Sleep for 2 seconds
@@ -150,4 +152,13 @@ public class JCozCLI {
 			// search through and 
 		}
 	}
+
+
+    public static void tryToLogPPHit() throws Exception {
+        System.out.println("Called tryToLogPPHit");
+        if (JCozCLI.profilingStarted) {
+            System.out.println("Called tryToLogPPHit when profiling was started");
+            JCozCLI.process.logProgressPointHit();
+        }
+    }
 }

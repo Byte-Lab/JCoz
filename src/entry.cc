@@ -256,9 +256,10 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
    };
 
   jint err;
-  logger->info("Registering native methods..");
+  logger->info("Registering native methods.");
   err = jni_env->RegisterNatives(cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
   if (err != JVMTI_ERROR_NONE){
+      logger->error("Unable to register native methods.");
     fprintf(stderr, "Could not register natives with error %d\n", err);
     return;
   }
@@ -301,7 +302,6 @@ static bool PrepareJvmti(jvmtiEnv *jvmti) {
   caps.can_get_line_numbers = 1;
   caps.can_get_bytecodes = 1;
   caps.can_get_constant_pool = 1;
-  caps.can_generate_breakpoint_events = 1;
 
   jvmtiCapabilities all_caps;
   memset(&all_caps, 0, sizeof(all_caps));
@@ -346,15 +346,15 @@ static bool RegisterJvmti(jvmtiEnv *jvmti) {
 
   callbacks->ClassLoad = &OnClassLoad;
   callbacks->ClassPrepare = &OnClassPrepare;
-  callbacks->Breakpoint = &(Profiler::HandleBreakpoint);
 
   JVMTI_ERROR_1(
       (jvmti->SetEventCallbacks(callbacks, sizeof(jvmtiEventCallbacks))),
       false);
 
-  jvmtiEvent events[] = {JVMTI_EVENT_CLASS_LOAD, JVMTI_EVENT_BREAKPOINT,
-                         JVMTI_EVENT_THREAD_END, JVMTI_EVENT_THREAD_START,
-                         JVMTI_EVENT_VM_DEATH, JVMTI_EVENT_VM_INIT};
+  jvmtiEvent events[] = {
+      JVMTI_EVENT_CLASS_LOAD, JVMTI_EVENT_THREAD_END,
+      JVMTI_EVENT_THREAD_START,
+      JVMTI_EVENT_VM_DEATH, JVMTI_EVENT_VM_INIT};
 
   size_t num_events = sizeof(events) / sizeof(jvmtiEvent);
 

@@ -55,8 +55,12 @@ class ProgressPointMethodAdapter extends MethodVisitor implements Opcodes {
 	public void visitLineNumber(int line, Label start) {
 		// If we're at the line, transform it to call logProgressPointHit.
 		if (line == this.lineNum) {
-	        mv.visitFieldInsn(GETSTATIC, "com/vernetperronllc/jcoz/client/cli/JCozCLI", "process", "Lcom/vernetperronllc/jcoz/client/cli/TargetProcessInterface;");
-	        mv.visitMethodInsn(INVOKEVIRTUAL, "com/vernetperronllc/jcoz/client/cli/TargetPRocessInterface", "logProgressPointHit", "()I", true);
+	        mv.visitMethodInsn(
+                    INVOKESTATIC,
+                    "com/vernetperronllc/jcoz/client/cli/JCozCLI",
+                    "tryToLogPPHit",
+                    "()V",
+                    false);
 		}
 		
 		mv.visitLineNumber(line, start);
