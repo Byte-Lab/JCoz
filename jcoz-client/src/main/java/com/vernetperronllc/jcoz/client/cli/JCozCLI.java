@@ -43,9 +43,6 @@ import com.vernetperronllc.jcoz.service.VirtualMachineConnectionException;
  *
  */
 public class JCozCLI {
-	public static TargetProcessInterface process = null;
-    public static boolean profilingStarted = false;
-
 	public static void main(String[] args) throws ParseException, VirtualMachineConnectionException, JCozException, IOException, InterruptedException{
 		Options ops = new Options();
 		
@@ -90,21 +87,21 @@ public class JCozCLI {
 		
 		String remoteHost = cl.getOptionValue('h');
 		boolean isRemote = remoteHost != null && !remoteHost.equals("");
+		final TargetProcessInterface process;
 		if (isRemote) {
 			try {
 				Profile profile = new Profile(remoteHost, null);
 				final RemoteServiceWrapper remoteService = new RemoteServiceWrapper(remoteHost);
-				JCozCLI.process = remoteService.attachToProcess(pid);
-				JCozCLI.process.setProgressPoint(ppClass, ppLineNo);
-				JCozCLI.process.setScope(scopePkg);
-				JCozCLI.process.startProfiling();
-                JCozCLI.profilingStarted = true;
+				process = remoteService.attachToProcess(pid);
+				process.setProgressPoint(ppClass, ppLineNo);
+				process.setScope(scopePkg);
+				process.startProfiling();
 
 				while (true) {
 					// Sleep for 2 seconds
 					Thread.sleep(2000);
 					
-					List<Experiment> experiments = JCozCLI.process.getProfilerOutput();
+					List<Experiment> experiments = process.getProfilerOutput();
 					profile.addExperiments(experiments);
 				}
 			} catch (JCozException e) {
@@ -124,7 +121,7 @@ public class JCozCLI {
 				return;
 			}
 			
-			JCozCLI.process = new LocalProcessWrapper(descriptor);
+			process = new LocalProcessWrapper(descriptor);
 			//catch SIGINT and end profiling
 			Runtime.getRuntime().addShutdownHook(new Thread()
 	        {
@@ -132,18 +129,18 @@ public class JCozCLI {
 	            public void run()
 	            {
 	                try {
-	                	JCozCLI.process.endProfiling();
+	                	process.endProfiling();
 						System.exit(0);
 					} catch (JCozException e) {
 						// we are dying, do nothing
 					}
 	            }
 	        });
-			JCozCLI.process.setProgressPoint(ppClass, ppLineNo);
-			JCozCLI.process.setScope(scopePkg);
-			JCozCLI.process.startProfiling();
+			process.setProgressPoint(ppClass, ppLineNo);
+			process.setScope(scopePkg);
+			process.startProfiling();
 			while(true){
-				for(Experiment e : JCozCLI.process.getProfilerOutput()){
+				for(Experiment e : process.getProfilerOutput()){
 					System.out.println(e.toString());
 				}
 				Thread.sleep(1000);
@@ -152,13 +149,4 @@ public class JCozCLI {
 			// search through and 
 		}
 	}
-
-
-    public static void tryToLogPPHit() throws Exception {
-        System.out.println("Called tryToLogPPHit");
-        if (JCozCLI.profilingStarted) {
-            System.out.println("Called tryToLogPPHit when profiling was started");
-            JCozCLI.process.logProgressPointHit();
-        }
-    }
 }

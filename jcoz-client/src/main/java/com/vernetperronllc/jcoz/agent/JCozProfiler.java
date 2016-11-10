@@ -136,32 +136,6 @@ public class JCozProfiler implements JCozProfilerMBean {
 	}
 
 	private native int setProgressPointNative(String className, int lineNo);
-	
-	
-	/**
-	 * Call down natively into the profiler and log a progress point hit.
-	 * This is necessary because the JVM runs in "dynamic de-optimization"
-	 * mode when firing a breakpoint handler. See
-	 * http://www.oracle.com/technetwork/java/whitepaper-135217.html#dynamic
-	 * for a description of dynamic de-optimization. Note that this method is
-	 * injected just before the progress point line in the profiled library. 
-	 * 
-	 * @return The native method return code.
-	 */
-	public synchronized int logProgressPointHit() {
-		if (!experimentRunning_) {
-			return JCozProfilingErrorCodes.CANNOT_CALL_WHEN_RUNNING;
-		}
-		
-		int returnCode = logProgressPointHitNative();
-		if (returnCode == JCozProfilingErrorCodes.NO_PROGRESS_POINT_SET) {
-			System.err.println("Tried to log progress point before one was set");
-		}
-		
-		return returnCode;
-	}
-	
-	private native int logProgressPointHitNative();
 
 	/**
 	 * get the serialized output from recently run experiments

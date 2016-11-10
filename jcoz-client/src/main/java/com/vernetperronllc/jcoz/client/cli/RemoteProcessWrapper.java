@@ -146,14 +146,4 @@ public class RemoteProcessWrapper implements TargetProcessInterface {
 			throw new JCozException(e);
 		}
 	}
-
-
-	public int logProgressPointHit() throws JCozException {
-		try {
-			return service.logProgressPointHit(remotePid);
-		} catch (RemoteException e) {
-			throw new JCozException(e);
-		}
-	}
-
 }

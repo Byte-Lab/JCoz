@@ -36,8 +36,6 @@ public interface TargetProcessInterface {
 	public void endProfiling() throws JCozException;
 	
 	public void setProgressPoint(String className, int lineNo) throws JCozException;
-	
-	public int logProgressPointHit() throws JCozException;
 
 	public void setScope(String scope) throws JCozException;
 	

@@ -133,8 +133,4 @@ public class LocalProcessWrapper implements TargetProcessInterface{
 	public VirtualMachineDescriptor getDescriptor() {
 		return this.descriptor;
 	}
-
-	public int logProgressPointHit() {
-		return mbeanProxy.logProgressPointHit();
-	}
 }

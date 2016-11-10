@@ -1,20 +1,15 @@
 package com.vernetperronllc.jcoz.progress;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 
 /**
@@ -59,4 +54,22 @@ public class ProgressPointTransformer {
         fileOS.write(cw.toByteArray());
         fileOS.close();
     }
+    
+	
+	
+	/**
+	 * Call down natively into the profiler and log a progress point hit.
+	 * This is necessary because the JVM runs in "dynamic de-optimization"
+	 * mode when firing a breakpoint handler. See
+	 * http://www.oracle.com/technetwork/java/whitepaper-135217.html#dynamic
+	 * for a description of dynamic de-optimization. Note that this method is
+	 * injected just before the progress point line in the profiled library. 
+	 * 
+	 * @return The native method return code.
+	 */
+	public synchronized int logProgressPointHit() {
+		return logProgressPointHitNative();
+	}
+	
+	private native int logProgressPointHitNative();
 }
