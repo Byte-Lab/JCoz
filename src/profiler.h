@@ -118,7 +118,7 @@ class Profiler {
 
   static void printInScopeLineNumberMapping();
 
-  static void LogProgressPointHit();
+  static int LogProgressPointHit();
 
   void setScope(std::string package);
 

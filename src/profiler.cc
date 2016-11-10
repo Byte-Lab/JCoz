@@ -858,9 +858,17 @@ void Profiler::setJVMTI(jvmtiEnv *jvmti_env) {
 	jvmti = jvmti_env;
 }
 
-void JNICALL
+
+/** @brief Log a progress point hit for the current experiment.
+ *
+ *  Log a progress point hit for the current experiment.
+ *
+ *  @return 0 on success, or a negative error code on error.
+ */
+int
 Profiler::LogProgressPointHit() {
     logger->info("Progress point hit");
     curr_ut->points_hit += in_experiment;
-}
 
+    return 0;
+}

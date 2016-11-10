@@ -226,7 +226,7 @@ jint JNICALL setScopeNative(JNIEnv *env, jobject thisObj, jstring scope) {
 jint JNICALL logProgressPointHitNative(JNIEnv *env, jclass klass) {
     auto logger = prof->getLogger();
     logger->info("logProgressPointHitNative called!");
-    fprintf(stderr, "logProgressPointHitNative called!\n");
+    prof->LogProgressPointHit();
 
     return 0;
 }
