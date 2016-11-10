@@ -49,6 +49,4 @@ public interface JCozServiceInterface extends Remote {
 	public String getCurrentScope(int pid) throws RemoteException;
 	
 	public String getProgressPoint(int pid) throws RemoteException;
-
-	public int logProgressPointHit(int pid) throws RemoteException;
 }

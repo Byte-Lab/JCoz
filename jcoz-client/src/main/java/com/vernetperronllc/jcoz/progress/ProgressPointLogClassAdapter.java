@@ -48,9 +48,9 @@ class ProgressPointMethodAdapter extends MethodVisitor implements Opcodes {
 		if (line == this.lineNum) {
 	        mv.visitMethodInsn(
                     INVOKESTATIC,
-                    "com/vernetperronllc/jcoz/client/cli/JCozCLI",
-                    "tryToLogPPHit",
-                    "()V",
+                    "com/vernetperronllc/jcoz/agent/JCozProfiler",
+                    "logProgressPointHit",
+                    "()I",
                     false);
 		}
 		

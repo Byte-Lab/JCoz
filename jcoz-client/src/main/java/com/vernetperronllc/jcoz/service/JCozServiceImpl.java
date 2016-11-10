@@ -189,16 +189,4 @@ public class JCozServiceImpl implements JCozServiceInterface {
 		}
 		return attachedVMs.get(pid).getProgressPoint();
 	}
-
-	/* (non-Javadoc)
-	 * @see com.vernetperronllc.jcoz.service.JCozServiceInterface#logProgressPointHit(int)
-	 */
-	@Override
-	public int logProgressPointHit(int pid) throws RemoteException {
-		if(!attachedVMs.containsKey(pid)){
-			throw new RemoteException("", new JCozException("JVM with pid ("+pid+") is not attached"));
-		}
-		return attachedVMs.get(pid).logProgressPointHit();
-	}
-
 }

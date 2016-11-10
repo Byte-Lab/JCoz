@@ -223,6 +223,13 @@ jint JNICALL setScopeNative(JNIEnv *env, jobject thisObj, jstring scope) {
 }
 
 
+jint JNICALL logProgressPointHitNative(JNIEnv *env, jclass klass) {
+    auto logger = prof->getLogger();
+    logger->info("logProgressPointHitNative called!");
+    fprintf(stderr, "logProgressPointHitNative called!\n");
+
+    return 0;
+}
 
 void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
   IMPLICITLY_USE(thread);
@@ -253,15 +260,17 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
        {(char *)"endProfilingNative",     (char *)"()I",                     (void *)&endProfilingNative},
        {(char *)"setProgressPointNative", (char *)"(Ljava/lang/String;I)I",  (void *)&setProgressPointNative},
        {(char *)"setScopeNative",         (char *)"(Ljava/lang/String;)I",   (void *)&setScopeNative},
+       {(char *)"logProgressPointHitNative", (char *)"()I",                     (void *)&logProgressPointHitNative},
    };
 
   jint err;
   logger->info("Registering native methods.");
   err = jni_env->RegisterNatives(cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
   if (err != JVMTI_ERROR_NONE){
-      logger->error("Unable to register native methods.");
-    fprintf(stderr, "Could not register natives with error %d\n", err);
-    return;
+      jni_env->ExceptionDescribe();
+      logger->error("Unable to register native methods with error {}.", err);
+      fprintf(stderr, "Could not register natives with error %d\n", err);
+      exit(-1);
   }
   logger->info("Registered native methods. Registering profiler with MBean server...");
   jni_env->CallStaticVoidMethod(cls, mid);

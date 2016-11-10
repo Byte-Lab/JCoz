@@ -215,6 +215,23 @@ public class JCozProfiler implements JCozProfilerMBean {
 		return progressPointClass_ + ":" + progressPointLineNo_;
 	}
 
+    /**
+     * Call down natively into the profiler and log a progress point hit.
+     * This is necessary because the JVM runs in "dynamic de-optimization"
+     * mode when firing a breakpoint handler. See
+     * http://www.oracle.com/technetwork/java/whitepaper-135217.html#dynamic
+     * for a description of dynamic de-optimization. Note that this method is
+     * injected just before the progress point line in the profiled library. 
+     * 
+     * @return The native method return code.
+     */
+    public synchronized static int logProgressPointHit() {
+        return logProgressPointHitNative();
+    }
+    
+    private native static int logProgressPointHitNative();
+
+
 	/**
 	 * register the profiler with the Platform mbean server
 	 */
