@@ -23,10 +23,11 @@
             <version>1.0</version>
             <scope>system</scope>
             <!-- On Latedays use:
-            <systemPath>/usr/java/latest/jre/lib/ext/jfxrt.jar</systemPath>
             -->
-            <!-- On tsh use: -->
+            <systemPath>/usr/java/latest/jre/lib/ext/jfxrt.jar</systemPath>
+            <!-- On tsh use:
             <systemPath>/usr/lib/jvm/java-1.8.0-oracle/jre/lib/ext/jfxrt.jar</systemPath>
+ -->
         </dependency>
         <dependency>
         	<groupId>org.ow2.asm</groupId>
