@@ -153,7 +153,14 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
       //TODO: this matches a prefix. class name AA will match a progress
       // point set with class A
       std::string progress_pt_str = "L" + prof->getProgressClass();
+      logger->info(
+          "Checking whether progress_pt_str: "
+          "{} matches class signature: {}",
+          progress_pt_str, ksig.Get());
       if( strstr(ksig.Get(), progress_pt_str.c_str()) == ksig.Get() ) {
+        logger->info(
+            "{} matched class signature: {}",
+            progress_pt_str, ksig.Get());
           prof->addProgressPoint(method_count, methods.Get());
       }
   }

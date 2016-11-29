@@ -7,7 +7,7 @@ import random
 toy_iters = 500000
 
 
-class worker (threading.Thread):
+class JythonWorker (threading.Thread):
     def __init__(self, threadID, name):
         threading.Thread.__init__(self)
         self.threadID = threadID
@@ -30,7 +30,7 @@ while (1):
     n_workers = 15
     threads = []
     for x in range (0, n_workers):
-        threads.append(worker(x, "Thread-" + str(x)))
+        threads.append(JythonWorker(x, "Thread-" + str(x)))
     for t in threads:
         t.start()
     for t in threads:
