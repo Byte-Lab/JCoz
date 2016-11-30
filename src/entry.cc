@@ -150,11 +150,18 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
 
       }
 
+      std::string progress_pt_str = "L" + prof->getProgressClass();
+      logger->info(
+          "Checking whether progress_pt_str: "
+          "{} is a substring of class signature: {}",
+          progress_pt_str, ksig.Get());
       //TODO: this matches a prefix. class name AA will match a progress
       // point set with class A
-      std::string progress_pt_str = "L" + prof->getProgressClass();
-      if( strstr(ksig.Get(), progress_pt_str.c_str()) == ksig.Get() ) {
-          prof->addProgressPoint(method_count, methods.Get());
+      if(strstr(ksig.Get(), progress_pt_str.c_str()) != NULL) {
+        logger->info(
+            "{} was a substring of class signature: {}",
+            progress_pt_str, ksig.Get());
+        prof->addProgressPoint(method_count, methods.Get());
       }
   }
   if (releaseLock) {
