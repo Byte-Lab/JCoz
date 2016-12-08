@@ -27,6 +27,7 @@ public class TestThreadSerial {
   public static ExecutorService executor = Executors
     .newFixedThreadPool(numThreads);
   public static ArrayList<Callable<Void>> threads = new ArrayList<>();
+  public static boolean performGC = false;
 
   public static void main(String[] args) throws InterruptedException {
     if (args.length > 0) {
@@ -41,6 +42,9 @@ public class TestThreadSerial {
           System.out.println("usage: java test.TestThreadSerial [--fast|-s]");
         System.exit(0);
 
+        case "-g":
+          performGC = true;
+
         default:
         LOOP_ITERS = 50000000L;
         break;
@@ -51,6 +55,9 @@ public class TestThreadSerial {
       threads.add(new ParallelWorker());
 
     while (true) {
+      if (performGC) {
+        System.gc();
+      }
       doParallel();
       doSerial();
       sendRequest();
