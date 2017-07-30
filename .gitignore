@@ -27,8 +27,9 @@ questions
 .project
 .cproject
 .settings
-jcoz-client/target
-jcoz-client/.settings
+src/java/target
+src/java/.settings
 *.job.*
 *.log
-jcoz-client/src/main/bin
+/src/java/main/bin
+.sconsign.dblite
