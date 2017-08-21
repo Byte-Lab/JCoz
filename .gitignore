@@ -33,3 +33,4 @@ src/java/.settings
 *.log
 /src/java/main/bin
 .sconsign.dblite
+bazel*

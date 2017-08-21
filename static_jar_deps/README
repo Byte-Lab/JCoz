@@ -1,0 +1,2 @@
+This directory contains jar files that, as far as we know, do not reside on a remote maven or git repository.
+All other dependencies should, if possible, be listed in WORKSPACE.
