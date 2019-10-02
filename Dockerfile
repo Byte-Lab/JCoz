@@ -1,4 +1,4 @@
-# JCov (https://github.com/Decave/JCoz)
+# JCoz (https://github.com/Decave/JCoz)
 # Copyright (C) 2019 Mark Street (mkst@protonmail.com)
 #
 # This program is free software: you can redistribute it and/or modify
