@@ -1,24 +1,23 @@
 /*
- * NOTICE
+ * This file is part of JCoz.
  *
- * Copyright (c) 2016 David C Vernet and Matthew J Perron. All rights reserved.
+ * JCoz is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless otherwise noted, all of the material in this file is Copyright (c) 2016
- * by David C Vernet and Matthew J Perron. All rights reserved. No part of this file
- * may be reproduced, published, distributed, displayed, performed, copied,
- * stored, modified, transmitted or otherwise used or viewed by anyone other
- * than the authors (David C Vernet and Matthew J Perron),
- * for either public or private use.
+ * JCoz is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * No part of this file may be modified, changed, exploited, or in any way
- * used for derivative works or offered for sale without the express
- * written permission of the authors.
+ * You should have received a copy of the GNU General Public License
+ * along with JCoz.  If not, see <https://www.gnu.org/licenses/>.
  *
  * This file has been modified from lightweight-java-profiler
  * (https://github.com/dcapwell/lightweight-java-profiler). See APACHE_LICENSE for
  * a copy of the license that was included with that original work.
  */
-
 package com.vernetperronllc.jcoz.service;
 
 import java.io.IOException;
