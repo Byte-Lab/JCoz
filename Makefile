@@ -1,23 +1,17 @@
-##
-# NOTICE
+# This file is part of JCoz.
 #
-# Copyright (c) 2016 David C Vernet and Matthew J Perron. All rights reserved.
+# JCoz is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# Unless otherwise noted, all of the material in this file is Copyright (c) 2016
-# by David C Vernet and Matthew J Perron. All rights reserved. No part of this file
-# may be reproduced, published, distributed, displayed, performed, copied,
-# stored, modified, transmitted or otherwise used or viewed by anyone other
-# than the authors (David C Vernet and Matthew J Perron),
-# for either public or private use.
+# JCoz is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-# No part of this file may be modified, changed, exploited, or in any way
-# used for derivative works or offered for sale without the express
-# written permission of the authors.
-#
-# This file has been modified from lightweight-java-profiler
-# (https://github.com/dcapwell/lightweight-java-profiler). See APACHE_LICENSE for
-# a copy of the license that was included with that original work.
-#
+# You should have received a copy of the GNU General Public License
+# along with JCoz.  If not, see <https://www.gnu.org/licenses/>.
 
 CC=g++
 BITS?=64
@@ -32,10 +26,10 @@ PLATFORM_COPTS:=-mfpmath=sse \
 	-std=gnu++0x
 PLATFORM_WARNINGS:=-Wframe-larger-than=16384 \
 	-Wno-unused-but-set-variable \
-  -Wunused-but-set-parameter \
+	-Wunused-but-set-parameter \
 	-Wvla \
 	-Wno-conversion-null \
-  -Wno-builtin-macro-redefined
+	-Wno-builtin-macro-redefined
 
 LIBS=-ldl -lpthread
 
@@ -45,8 +39,8 @@ BUILD_DIR?=$(shell mkdir build-$(BITS) 2> /dev/null; echo $(PWD)/build-$(BITS))
 OPT?=-O3
 
 GLOBAL_WARNINGS=-Wformat-security \
-  -Wformat \
-  -Wno-char-subscripts \
+	-Wformat \
+	-Wno-char-subscripts \
 	-Wno-sign-compare \
 	-Wno-strict-overflow \
 	-Wnon-virtual-dtor \
@@ -79,7 +73,7 @@ JAVA_HOME:=$(shell \
 	echo $${JAVA_HOME})
 
 INCLUDES=-I$(JAVA_HOME)/include \
-  -I$(JAVA_HOME)/include/$(UNAME) \
+	-I$(JAVA_HOME)/include/$(UNAME) \
 	-I/usr/include
 
 SOURCES=$(wildcard $(SRC_DIR)/*.cc)
@@ -100,7 +94,7 @@ java:
 	mvn -f src/java/pom.xml install
 
 tests:
-	javac src/java/src/test/java/test/*.java -cp src/java/target/jcoz-client*.jar
+	javac src/java/src/test/java/test/*.java -cp src/java/target/jcoz-client*dependencies.jar
 
 clean:
 	rm -rf $(BUILD_DIR)/*
@@ -111,8 +105,8 @@ run:
 	cd src/java/src/test/java/; \
 	java \
 	  -agentpath:$(BUILD_DIR)/liblagent.so \
-		-cp $$(readlink -f ../../../target/jcoz-client*.jar):. \
-		test.TestThreadSerial &
+	  -cp $$(readlink -f ../../../target/jcoz-client*dependencies.jar):. \
+	  test.TestThreadSerial &
 
 kill:
 	pkill -9 java
