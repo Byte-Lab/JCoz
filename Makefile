@@ -94,7 +94,7 @@ java:
 	mvn -f src/java/pom.xml install
 
 tests:
-	javac src/java/src/test/java/test/*.java -cp src/java/target/jcoz-client*dependencies.jar
+	javac src/java/src/test/java/test/*.java -cp src/java/target/client*dependencies.jar
 
 clean:
 	rm -rf $(BUILD_DIR)/*
@@ -105,7 +105,7 @@ run:
 	cd src/java/src/test/java/; \
 	java \
 	  -agentpath:$(BUILD_DIR)/liblagent.so \
-	  -cp $$(readlink -f ../../../target/jcoz-client*dependencies.jar):. \
+	  -cp $$(readlink -f ../../../target/client*dependencies.jar):. \
 	  test.TestThreadSerial &
 
 kill:

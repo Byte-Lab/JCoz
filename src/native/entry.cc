@@ -235,7 +235,7 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
 
   auto logger = prof->getLogger();
   logger->info("Trying to find JCozProfiler class");
-  jclass cls = jni_env->FindClass("com/vernetperronllc/jcoz/agent/JCozProfiler");
+  jclass cls = jni_env->FindClass("jcoz/agent/JCozProfiler");
   if (cls == nullptr){
       logger->error("Could not find JCoz Profiler class, did you add the jar to the classpath?");
       fprintf(stderr, "Could not find JCoz Profiler class, did you add the jar to the classpath?\n");
