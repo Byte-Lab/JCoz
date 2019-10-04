@@ -25,13 +25,6 @@
       <scope>system</scope>
       <systemPath>${java.home}/../lib/tools.jar</systemPath>
     </dependency>
-     <dependency>
-      <groupId>com.sun</groupId>
-      <artifactId>jfxrt</artifactId>
-      <version>1.0</version>
-      <scope>system</scope>
-      <systemPath>/usr/java/latest/jre/lib/ext/jfxrt.jar</systemPath>
-    </dependency>
     <!-- https://mvnrepository.com/artifact/commons-cli/commons-cli -->
     <dependency>
         <groupId>commons-cli</groupId>
@@ -45,6 +38,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.6.0</version>
+      </plugin>
+      <plugin>
+        <groupId>org.openjfx</groupId>
+        <artifactId>javafx-maven-plugin</artifactId>
+        <version>0.0.3</version>
       </plugin>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
