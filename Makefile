@@ -33,7 +33,8 @@ PLATFORM_WARNINGS:=-Wframe-larger-than=16384 \
 
 LIBS=-ldl -lpthread
 
-SRC_DIR:=$(PWD)/src/native
+SRC_ROOT:=$(PWD)/src
+SRC_DIR:=$(SRC_ROOT)/native
 BUILD_DIR?=$(shell mkdir build-$(BITS) 2> /dev/null; echo $(PWD)/build-$(BITS))
 
 OPT?=-O3
@@ -74,6 +75,7 @@ JAVA_HOME:=$(shell \
 
 INCLUDES=-I$(JAVA_HOME)/include \
 	-I$(JAVA_HOME)/include/$(UNAME) \
+	-I$(SRC_ROOT) \
 	-I/usr/include
 
 SOURCES=$(wildcard $(SRC_DIR)/*.cc)
@@ -86,7 +88,7 @@ $(BUILD_DIR)/%.pic.o: $(SRC_DIR)/%.cc
 all: native java tests
 
 native: $(OBJECTS)
-	$(CC) $(COPTS) -shared \
+	$(CC) $(COPTS) -shared $(INCLUDES) \
 	  -o $(BUILD_DIR)/$(TARGET) \
 	  -Bsymbolic $(OBJECTS) $(LIBS)
 
