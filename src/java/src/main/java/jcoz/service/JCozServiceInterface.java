@@ -18,43 +18,37 @@
  * (https://github.com/dcapwell/lightweight-java-profiler). See APACHE_LICENSE for
  * a copy of the license that was included with that original work.
  */
-package test;
+package jcoz.service;
 
-import java.rmi.NotBoundException;
+import java.rmi.Remote;
 import java.rmi.RemoteException;
+import java.util.List;
 
 import jcoz.JCozVMDescriptor;
-import jcoz.client.cli.RemoteServiceWrapper;
-import jcoz.client.cli.TargetProcessInterface;
-import jcoz.profile.Experiment;
-import jcoz.service.JCozException;
-
 
 /**
  * @author matt
  *
  */
-public class JCozServiceTest {
+public interface JCozServiceInterface extends Remote{
+	
+	public List<JCozVMDescriptor> getJavaProcessDescriptions() throws RemoteException;
+	
+	public int attachToProcess(int pid) throws RemoteException;
+	
+	public int startProfiling(int pid) throws RemoteException;
+	
+	public int endProfiling(int pid) throws RemoteException;
+	
+	public int setProgressPoint(int pid, String className, int lineNo) throws RemoteException;
+	
+	public int setScope(int pid, String scope) throws RemoteException;
+	
+	public byte[] getProfilerOutput(int pid) throws RemoteException;
+	
+	public String getCurrentScope(int pid) throws RemoteException;
+	
+	public String getProgressPoint(int pid) throws RemoteException;
 	
 
-	public static void main(String[] args) throws RemoteException, NotBoundException, JCozException, InterruptedException{
-		RemoteServiceWrapper service = new RemoteServiceWrapper("localhost");
-		
-		TargetProcessInterface remote = null;
-		for (JCozVMDescriptor desc : service.listRemoteVirtualMachines()){
-			if (desc.getDisplayName().contains("TestThreadSerial")){
-				remote = service.attachToProcess(desc.getPid());
-			}
-		}
-		remote.setProgressPoint("test.TestThreadSerial", 38);
-		remote.setScope("test");
-		remote.startProfiling();
-		for(int i =0; i < 30; i++){
-			for(Experiment exp: remote.getProfilerOutput()){
-				System.out.println(exp);
-			}
-			Thread.sleep(1000);
-		}
-		remote.endProfiling();
-	}
 }
