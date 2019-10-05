@@ -32,6 +32,9 @@
 #include "globals.h"
 #include "stacktraces.h"
 #include "spdlog/spdlog.h"
+#ifdef SPDLOG_VERSION
+#include "spdlog/sinks/basic_file_sink.h"
+#endif
 
 #ifndef PROFILER_H
 #define PROFILER_H
