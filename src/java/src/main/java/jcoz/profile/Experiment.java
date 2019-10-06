@@ -51,7 +51,7 @@ public class Experiment implements Comparable<Experiment> {
 	/**
 	 * Create an experiment object from a coz string in the form
 	 * returned by Experiment.toString().
-	 * @param cozFormatExperiment
+	 * @param exp
 	 */
 	public Experiment (String exp) {
 		int selectedIndex = exp.indexOf("selected=");

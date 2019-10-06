@@ -20,20 +20,6 @@
  */
 package jcoz.service;
 
-import java.io.IOException;
-import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.TreeMap;
-
-import javax.management.JMX;
-import javax.management.MBeanServerConnection;
-import javax.management.remote.JMXConnector;
-import javax.management.remote.JMXConnectorFactory;
-import javax.management.remote.JMXServiceURL;
-
 import com.sun.tools.attach.AttachNotSupportedException;
 import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
@@ -42,152 +28,161 @@ import jcoz.agent.JCozProfiler;
 import jcoz.agent.JCozProfilerMBean;
 import jcoz.agent.JCozProfilingErrorCodes;
 
+import javax.management.JMX;
+import javax.management.MBeanServerConnection;
+import javax.management.remote.JMXConnector;
+import javax.management.remote.JMXConnectorFactory;
+import javax.management.remote.JMXServiceURL;
+import java.io.IOException;
+import java.rmi.RemoteException;
+import java.util.*;
+
 /**
  * @author matt
- *
  */
 public class JCozServiceImpl implements JCozServiceInterface {
 
-	private static final String CONNECTOR_ADDRESS_PROPERTY_KEY = "com.sun.management.jmxremote.localConnectorAddress";
-	
-	// use a tree map so it is sorted
-	public Map<Integer, JCozProfilerMBean> attachedVMs = new TreeMap<>();
+    private static final String CONNECTOR_ADDRESS_PROPERTY_KEY = "com.sun.management.jmxremote.localConnectorAddress";
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see jcoz.service.JCozServiceInterface#
-	 * getJavaProcessDescriptions()
-	 */
-	@Override
-	public List<JCozVMDescriptor> getJavaProcessDescriptions()
-			throws RemoteException {
-		System.out.println("in get java process descriptions");
-		ArrayList<JCozVMDescriptor> stringDesc = new ArrayList<>();
-		for (VirtualMachineDescriptor desc : VirtualMachine.list()){
-			stringDesc.add(new JCozVMDescriptor(Integer.parseInt(desc.id()), desc.displayName()));
-		}
-		return stringDesc;
-	}
+    // use a tree map so it is sorted
+    private Map<Integer, JCozProfilerMBean> attachedVMs = new TreeMap<>();
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * jcoz.service.JCozServiceInterface#attachToProcess
-	 * (int)
-	 */
-	@Override
-	public int attachToProcess(int localProcessId)
-			throws RemoteException {
-		System.out.println("attach");
-		try {
-			for (VirtualMachineDescriptor desc : VirtualMachine.list()) {
-				if (Integer.parseInt(desc.id()) == localProcessId) {
-					VirtualMachine vm = VirtualMachine.attach(desc);
-					vm.startLocalManagementAgent();
-					Properties props = vm.getAgentProperties();
-					String connectorAddress = props
-							.getProperty(CONNECTOR_ADDRESS_PROPERTY_KEY);
-					JMXServiceURL url = new JMXServiceURL(connectorAddress);
-					JMXConnector connector = JMXConnectorFactory.connect(url);
-					MBeanServerConnection mbeanConn = connector
-							.getMBeanServerConnection();
-					attachedVMs.put(localProcessId, JMX.newMXBeanProxy(mbeanConn,
-							JCozProfiler.getMBeanName(),
-							JCozProfilerMBean.class));
-					return JCozProfilingErrorCodes.NORMAL_RETURN;
-				}
-			}
-		} catch (IOException | NumberFormatException
-				| AttachNotSupportedException exception) {
-			exception.printStackTrace();
-			throw new RemoteException("", exception);
-			
-		}
-		return JCozProfilingErrorCodes.INVALID_JAVA_PROCESS;
-	}
+    private static final String JVM_WITH_PID_IS_NOT_ATTACHED = "JVM with pid %d is not attached";
 
-	/* (non-Javadoc)
-	 * @see jcoz.service.JCozServiceInterface#startProfiling(int)
-	 */
-	@Override
-	public int startProfiling(int pid) throws RemoteException {
-		if(!attachedVMs.containsKey(pid)){
-			throw new RemoteException("", new JCozException("JVM with pid ("+pid+") is not attached"));
-		}
-		return attachedVMs.get(pid).startProfiling();
-	}
+    /*
+     * (non-Javadoc)
+     *
+     * @see jcoz.service.JCozServiceInterface#
+     * getJavaProcessDescriptions()
+     */
+    @Override
+    public List<JCozVMDescriptor> getJavaProcessDescriptions()
+            throws RemoteException {
+        System.out.println("in get java process descriptions");
+        ArrayList<JCozVMDescriptor> stringDesc = new ArrayList<>();
+        for (VirtualMachineDescriptor desc : VirtualMachine.list()) {
+            stringDesc.add(new JCozVMDescriptor(Integer.parseInt(desc.id()), desc.displayName()));
+        }
+        return stringDesc;
+    }
 
-	/* (non-Javadoc)
-	 * @see jcoz.service.JCozServiceInterface#endProfiling(int)
-	 */
-	@Override
-	public int endProfiling(int pid) throws RemoteException {
-		if(!attachedVMs.containsKey(pid)){
-			throw new RemoteException("", new JCozException("JVM with pid ("+pid+") is not attached"));
-		}
-		return attachedVMs.get(pid).endProfiling();
-	}
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * jcoz.service.JCozServiceInterface#attachToProcess
+     * (int)
+     */
+    @Override
+    public int attachToProcess(int localProcessId)
+            throws RemoteException {
+        System.out.println("attach");
+        try {
+            for (VirtualMachineDescriptor desc : VirtualMachine.list()) {
+                if (Integer.parseInt(desc.id()) == localProcessId) {
+                    VirtualMachine vm = VirtualMachine.attach(desc);
+                    vm.startLocalManagementAgent();
+                    Properties props = vm.getAgentProperties();
+                    String connectorAddress = props
+                            .getProperty(CONNECTOR_ADDRESS_PROPERTY_KEY);
+                    JMXServiceURL url = new JMXServiceURL(connectorAddress);
+                    JMXConnector connector = JMXConnectorFactory.connect(url);
+                    MBeanServerConnection mbeanConn = connector
+                            .getMBeanServerConnection();
+                    attachedVMs.put(localProcessId, JMX.newMXBeanProxy(mbeanConn,
+                            JCozProfiler.getMBeanName(),
+                            JCozProfilerMBean.class));
+                    return JCozProfilingErrorCodes.NORMAL_RETURN;
+                }
+            }
+        } catch (IOException | NumberFormatException
+                | AttachNotSupportedException exception) {
+            exception.printStackTrace();
+            throw new RemoteException("", exception);
 
-	/* (non-Javadoc)
-	 * @see jcoz.service.JCozServiceInterface#setProgressPoint(int, java.lang.String, int)
-	 */
-	@Override
-	public int setProgressPoint(int pid, String className, int lineNo)
-			throws RemoteException {
-		if(!attachedVMs.containsKey(pid)){
-			throw new RemoteException("", new JCozException("JVM with pid ("+pid+") is not attached"));
-		}
-		return attachedVMs.get(pid).setProgressPoint(className, lineNo);
-	}
+        }
+        return JCozProfilingErrorCodes.INVALID_JAVA_PROCESS;
+    }
 
-	/* (non-Javadoc)
-	 * @see jcoz.service.JCozServiceInterface#setScope(int, java.lang.String)
-	 */
-	@Override
-	public int setScope(int pid, String scope) throws RemoteException {
-		if(!attachedVMs.containsKey(pid)){
-			throw new RemoteException("", new JCozException("JVM with pid ("+pid+") is not attached"));
-		}
-		return attachedVMs.get(pid).setScope(scope);
-	}
+    /* (non-Javadoc)
+     * @see jcoz.service.JCozServiceInterface#startProfiling(int)
+     */
+    @Override
+    public int startProfiling(int pid) throws RemoteException {
+        if (!attachedVMs.containsKey(pid)) {
+            throw new RemoteException("", new JCozException(String.format(JVM_WITH_PID_IS_NOT_ATTACHED, pid)));
+        }
+        return attachedVMs.get(pid).startProfiling();
+    }
 
-	/* (non-Javadoc)
-	 * @see jcoz.service.JCozServiceInterface#getProfilerOutput(int)
-	 */
-	@Override
-	public byte[] getProfilerOutput(int pid) throws RemoteException {
-		if(!attachedVMs.containsKey(pid)){
-			throw new RemoteException("", new JCozException("JVM with pid ("+pid+") is not attached"));
-		}
-		try {
-			return attachedVMs.get(pid).getProfilerOutput();
-		} catch (IOException e) {
-			throw new RemoteException("", e);
-		}
-	}
+    /* (non-Javadoc)
+     * @see jcoz.service.JCozServiceInterface#endProfiling(int)
+     */
+    @Override
+    public int endProfiling(int pid) throws RemoteException {
+        if (!attachedVMs.containsKey(pid)) {
+            throw new RemoteException("", new JCozException(String.format(JVM_WITH_PID_IS_NOT_ATTACHED, pid)));
+        }
+        return attachedVMs.get(pid).endProfiling();
+    }
 
-	/* (non-Javadoc)
-	 * @see jcoz.service.JCozServiceInterface#getCurrentScope(int)
-	 */
-	@Override
-	public String getCurrentScope(int pid) throws RemoteException {
-		if(!attachedVMs.containsKey(pid)){
-			throw new RemoteException("", new JCozException("JVM with pid ("+pid+") is not attached"));
-		}
-		return attachedVMs.get(pid).getCurrentScope();
-	}
+    /* (non-Javadoc)
+     * @see jcoz.service.JCozServiceInterface#setProgressPoint(int, java.lang.String, int)
+     */
+    @Override
+    public int setProgressPoint(int pid, String className, int lineNo) throws RemoteException {
+        if (!attachedVMs.containsKey(pid)) {
+            throw new RemoteException("", new JCozException(String.format(JVM_WITH_PID_IS_NOT_ATTACHED, pid)));
+        }
+        return attachedVMs.get(pid).setProgressPoint(className, lineNo);
+    }
 
-	/* (non-Javadoc)
-	 * @see jcoz.service.JCozServiceInterface#getProgressPoint(int)
-	 */
-	@Override
-	public String getProgressPoint(int pid) throws RemoteException {
-		if(!attachedVMs.containsKey(pid)){
-			throw new RemoteException("", new JCozException("JVM with pid ("+pid+") is not attached"));
-		}
-		return attachedVMs.get(pid).getProgressPoint();
-	}
+    /* (non-Javadoc)
+     * @see jcoz.service.JCozServiceInterface#setScope(int, java.lang.String)
+     */
+    @Override
+    public int setScope(int pid, String scope) throws RemoteException {
+        if (!attachedVMs.containsKey(pid)) {
+            throw new RemoteException("", new JCozException(String.format(JVM_WITH_PID_IS_NOT_ATTACHED, pid)));
+        }
+        return attachedVMs.get(pid).setScope(scope);
+    }
+
+    /* (non-Javadoc)
+     * @see jcoz.service.JCozServiceInterface#getProfilerOutput(int)
+     */
+    @Override
+    public byte[] getProfilerOutput(int pid) throws RemoteException {
+        if (!attachedVMs.containsKey(pid)) {
+            throw new RemoteException("", new JCozException(String.format(JVM_WITH_PID_IS_NOT_ATTACHED, pid)));
+        }
+        try {
+            return attachedVMs.get(pid).getProfilerOutput();
+        } catch (IOException e) {
+            throw new RemoteException("", e);
+        }
+    }
+
+    /* (non-Javadoc)
+     * @see jcoz.service.JCozServiceInterface#getCurrentScope(int)
+     */
+    @Override
+    public String getCurrentScope(int pid) throws RemoteException {
+        if (!attachedVMs.containsKey(pid)) {
+            throw new RemoteException("", new JCozException(String.format(JVM_WITH_PID_IS_NOT_ATTACHED, pid)));
+        }
+        return attachedVMs.get(pid).getCurrentScope();
+    }
+
+    /* (non-Javadoc)
+     * @see jcoz.service.JCozServiceInterface#getProgressPoint(int)
+     */
+    @Override
+    public String getProgressPoint(int pid) throws RemoteException {
+        if (!attachedVMs.containsKey(pid)) {
+            throw new RemoteException("", new JCozException(String.format(JVM_WITH_PID_IS_NOT_ATTACHED, pid)));
+        }
+        return attachedVMs.get(pid).getProgressPoint();
+    }
 
 }
