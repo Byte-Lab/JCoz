@@ -16,10 +16,12 @@
 bin/
 build-64/
 build/
+out
 questions
 src/java/target
 *.class
 *.coz
+*.iml
 *.jar
 *.job.*
 *.log
@@ -28,6 +30,7 @@ src/java/target
 *.txt
 .classpath
 .cproject
+.idea
 .project
 .scannerwork
 .settings

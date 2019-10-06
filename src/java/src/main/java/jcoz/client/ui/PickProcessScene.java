@@ -258,7 +258,7 @@ public class PickProcessScene {
 						boolean hasProcess = (selectedItem != null) && (!selectedItem.equals(""));
 						boolean hasClass = (klass.getText() != null) && !klass.getText().equals("");
 						boolean hasScope = (scope.getText() != null) && !scope.getText().equals("");
-						boolean hasLineNumber = (lineNumber != null) && !lineNumber.equals("");
+						boolean hasLineNumber = (lineNumber.getText() != null) && !lineNumber.getText().equals("");
 						profileProcessBtn.setDisable(
 								!hasProcess ||
 								!hasLineNumber ||

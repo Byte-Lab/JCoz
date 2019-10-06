@@ -27,40 +27,38 @@ import java.rmi.server.UnicastRemoteObject;
 
 /**
  * @author matt
- *
  */
 public class JCozService {
-	public static final int DEFAULT_SERVICE_PORT = 2216; // for VP
-	
-	public static final String SERVICE_NAME = "JCozService";
+    public static final int DEFAULT_SERVICE_PORT = 2216; // for VP
 
-	// first element is port otherwise use default
-	public static void main(String[] args) throws JCozException,
-			RemoteException {
-		int port = DEFAULT_SERVICE_PORT;
-		if (args.length > 0) {
-			try {
-				port = Integer.parseInt(args[0]);
-			} catch (NumberFormatException e) {
-				throw new JCozException("Invalid port : " + args[0], e);
-			}
-		}
-		Registry registry = LocateRegistry.createRegistry(port);
-		JCozServiceInterface engine = new JCozServiceImpl();
-		JCozServiceInterface stub = (JCozServiceInterface) UnicastRemoteObject
-				.exportObject(engine, 0);
-		registry.rebind(SERVICE_NAME, stub);
-		// wait forever
-		synchronized (JCozService.class) {
-			while (true) {
-				try {
-					JCozService.class.wait();
-				} catch (InterruptedException e) {
-					//do nothing
-				}
-			}
-		}
+    public static final String SERVICE_NAME = "JCozService";
 
-	}
-
+    // first element is port otherwise use default
+    public static void main(String[] args) throws JCozException,
+            RemoteException {
+        int port = DEFAULT_SERVICE_PORT;
+        if (args.length > 0) {
+            try {
+                port = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                throw new JCozException("Invalid port: " + args[0], e);
+            }
+        }
+        Registry registry = LocateRegistry.createRegistry(port);
+        JCozServiceInterface engine = new JCozServiceImpl();
+        JCozServiceInterface stub = (JCozServiceInterface) UnicastRemoteObject
+                .exportObject(engine, 0);
+        registry.rebind(SERVICE_NAME, stub);
+        // wait forever
+        synchronized (JCozService.class) {
+            while (true) {
+                try {
+                    JCozService.class.wait();
+                } catch (InterruptedException e) {
+                    System.out.println("JCozService.class interrupted");
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+    }
 }
