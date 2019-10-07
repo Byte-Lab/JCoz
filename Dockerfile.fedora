@@ -3,13 +3,10 @@ FROM fedora:30
 RUN yum install -y \
     gcc-c++ \
     java-1.8.0-openjdk-devel \
-    java-1.8.0-openjdk-openjfx-devel \
     make \
     maven \
     spdlog-devel \
-    which && \
-  mkdir -p /usr/java/latest/jre && \
-  ln -s /usr/lib/jvm/openjfx/rt/lib /usr/java/latest/jre/lib
+    which
 
 COPY . /jcoz
 
