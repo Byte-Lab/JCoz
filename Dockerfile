@@ -20,10 +20,7 @@ RUN apt-get update && \
   apt-get install -y \
     g++ \
     libspdlog-dev \
-    make \
-    openjfx && \
-  mkdir -p /usr/java/ && \
-  ln -nfs /usr/share/java/openjfx /usr/java/latest
+    make
 
 COPY . /jcoz
 
