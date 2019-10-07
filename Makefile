@@ -93,7 +93,7 @@ native: $(OBJECTS)
 java:
 	mvn -f src/java/pom.xml install
 
-tests:
+tests: java
 	javac src/java/src/test/java/test/*.java -cp src/java/target/client*dependencies.jar
 
 clean:
