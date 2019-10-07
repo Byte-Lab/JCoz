@@ -39,8 +39,11 @@ public class Experiment implements Comparable<Experiment> {
 	 * @param duration length of experiment - pause time
 	 * @param pointsHit number of time the progress point was hit in the experiment
 	 */
-	public Experiment(String classSig, int lineNo, float speedup,
-			long duration, long pointsHit) {
+	public Experiment(String classSig,
+					  int lineNo,
+					  float speedup,
+					  long duration,
+					  long pointsHit) {
 		this.classSig = classSig;
 		this.lineNo = lineNo;
 		this.speedup = speedup;
@@ -96,19 +99,19 @@ public class Experiment implements Comparable<Experiment> {
 	/*
 	 * getters
 	 */
-	public String getClassSig() {
+	String getClassSig() {
 		return classSig;
 	}
 	public int getLineNo() {
 		return lineNo;
 	}
-	public float getSpeedup() {
+	float getSpeedup() {
 		return speedup;
 	}
-	public long getDuration() {
+	long getDuration() {
 		return duration;
 	}
-	public long getPointsHit() {
+	long getPointsHit() {
 		return pointsHit;
 	}
 	
@@ -128,10 +131,27 @@ public class Experiment implements Comparable<Experiment> {
 	 */
 	@Override
 	public String toString() {
-		return "experiment\tselected=" + classSig + ":" + lineNo +
-         "\tspeedup=" + speedup + "\tduration="
-        + duration +"\n" + "progress-point\tname=end-to-end\ttype=source\tdelta="
-        +pointsHit;
+		return "experiment" +
+				"\t" +
+				"selected=" +
+				classSig +
+				":" +
+				"lineNo" +
+				"\t" +
+				"speedup=" +
+				speedup +
+				"\t" +
+				"duration=" +
+				duration +
+				"\n" +
+				"progress-point" +
+				"\t" +
+				"name=end-to-end" +
+				"\t" +
+				"type=source" +
+				"\t" +
+				"delta=" +
+				pointsHit;
 	}
 	
 	/**
@@ -151,13 +171,7 @@ public class Experiment implements Comparable<Experiment> {
 		} else if (this.getSpeedup() > arg0.getSpeedup()) {
 			return 1;
 		} else {
-			if (this.getPointsHit() < arg0.getPointsHit()) {
-				return -1;
-			} else if (this.getPointsHit() > arg0.getPointsHit()) {
-				return 1;
-			} else {
-				return 0;
-			}
+			return Long.compare(this.getPointsHit(), arg0.getPointsHit());
 		}
 	}
 }
