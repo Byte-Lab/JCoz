@@ -29,7 +29,7 @@ COPY . /jcoz
 
 WORKDIR /jcoz
 
-RUN make all
+RUN make -j`nproc` all
 
 FROM openjdk:8-slim
 

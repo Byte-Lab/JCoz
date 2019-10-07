@@ -15,4 +15,4 @@ COPY . /jcoz
 
 WORKDIR /jcoz
 
-RUN make all
+RUN make -j`nproc` all
