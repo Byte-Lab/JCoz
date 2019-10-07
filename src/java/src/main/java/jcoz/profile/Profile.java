@@ -20,11 +20,6 @@
  */
 package jcoz.profile;
 
-import javafx.scene.chart.LineChart;
-import javafx.scene.chart.XYChart;
-import jcoz.client.ui.VisualizeProfileScene;
-import jcoz.profile.sort.ProfileSpeedupSorter;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -35,7 +30,7 @@ import java.util.Map;
 
 /**
  * A jcoz.profile for a given application. It contains all speedup data for
- * a given application, and manages the logic for rendering a speedup chart,
+ * a given application, and manages the logic for parsing an existing profile,
  * and logging experiments.
  *
  * @author David
@@ -45,32 +40,12 @@ public class Profile {
 
     private String process;
 
-    private LineChart<Number, Number> lineChart;
-
     RandomAccessFile stream;
 
-    public Profile(String process, LineChart<Number, Number> lineChart) {
+    public Profile(String process) {
         this.process = process;
 
-        this.lineChart = lineChart;
-
         this.initializeProfileLogging();
-    }
-
-    /**
-     * Render the line speedups for the current set of received experiments.
-     */
-    public synchronized void renderLineSpeedups(
-            int minSamples,
-            int numSeries,
-            ProfileSpeedupSorter sorter) {
-        // Always clear data because the user may have chosen a different sorting.
-        lineChart.getData().clear();
-        List<XYChart.Series<Number, Number>> series =
-                sorter.createCharts(this.classSpeedups.values(), minSamples);
-        for (int i = 0; i < Math.min(numSeries, series.size()); i++) {
-            lineChart.getData().add(series.get(i));
-        }
     }
 
     /**
@@ -116,14 +91,6 @@ public class Profile {
         return this.process;
     }
 
-
-    /**
-     * @return This profile's line chart.
-     */
-    public LineChart<Number, Number> getLineChart() {
-        return this.lineChart;
-    }
-
     /**
      * Flush all pending experiments to the profile and
      * close the open file reader/writer.
@@ -166,12 +133,6 @@ public class Profile {
         try {
             this.stream = new RandomAccessFile(profile, "rw");
             this.readExperimentsFromLogFile();
-            if (this.lineChart != null) {
-                this.renderLineSpeedups(
-                        VisualizeProfileScene.DEFAULT_MIN_SAMPLES,
-                        VisualizeProfileScene.DEFAULT_NUM_SERIES,
-                        VisualizeProfileScene.DEFAULT_SORTER);
-            }
         } catch (IOException e) {
             System.err.println("Unable to create jcoz.profile output file or read jcoz.profile output from file");
             e.printStackTrace();
@@ -184,7 +145,8 @@ public class Profile {
      * @throws IOException
      */
     private void readExperimentsFromLogFile() throws IOException {
-        // Iterate through every line in the file, and add
+        // Iterate through every line in the file, and add any existing
+        // profile entries to the current profile.
         while (this.stream.getFilePointer() != this.stream.length()) {
             String line1 = this.stream.readLine();
             String line2 = this.stream.readLine();

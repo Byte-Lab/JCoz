@@ -82,7 +82,7 @@ public class JCozCLI {
         boolean isRemote = remoteHost != null && !remoteHost.equals("");
         if (isRemote) {
             try {
-                Profile profile = new Profile(remoteHost, null);
+                Profile profile = new Profile(remoteHost);
                 final RemoteServiceWrapper remoteService = new RemoteServiceWrapper(remoteHost);
                 TargetProcessInterface profiledClient = remoteService.attachToProcess(pid);
                 profiledClient.setProgressPoint(ppClass, ppLineNo);

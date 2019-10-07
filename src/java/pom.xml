@@ -26,13 +26,6 @@
       <scope>system</scope>
       <systemPath>${java.home}/../lib/tools.jar</systemPath>
     </dependency>
-     <dependency>
-      <groupId>com.sun</groupId>
-      <artifactId>jfxrt</artifactId>
-      <version>1.0</version>
-      <scope>system</scope>
-      <systemPath>/usr/java/latest/jre/lib/ext/jfxrt.jar</systemPath>
-    </dependency>
     <!-- https://mvnrepository.com/artifact/commons-cli/commons-cli -->
     <dependency>
         <groupId>commons-cli</groupId>

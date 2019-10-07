@@ -20,10 +20,6 @@
  */
 package jcoz.profile;
 
-import javafx.scene.chart.XYChart;
-import javafx.scene.chart.XYChart.Series;
-import jcoz.client.ui.VisualizeProfileScene;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -48,7 +44,7 @@ public class LineSpeedup {
         this.experiments = new ArrayList<>(experiments);
         this.lineNo = lineNo;
 
-        this.updateSpeedupMap(VisualizeProfileScene.DEFAULT_MIN_SAMPLES);
+        this.updateSpeedupMap();
     }
 
     public LineSpeedup(Experiment exp) {
@@ -79,21 +75,14 @@ public class LineSpeedup {
      *
      * @throws InsufficientBaselineResultsException
      */
-    private void updateSpeedupMap(int minSamples) throws InsufficientBaselineResultsException {
+    private void updateSpeedupMap() throws InsufficientBaselineResultsException {
         this.baselineSpeedup = this.calculateBaselineSpeedup();
         this.speedupMap.clear();
 
         Map<Float, List<Experiment>> speedups = this.groupExperimentsBySpeedups();
 
         for (Map.Entry<Float, List<Experiment>> speedup : speedups.entrySet()) {
-
             List<Experiment> speedupExperiments = speedup.getValue();
-
-            // Don't plot speedup measurements with fewer than the minimum required samples.
-            if (speedupExperiments.size() < minSamples) {
-                continue;
-            }
-
             long totalDuration = 0;
             long pointsHit = 0;
 
@@ -165,29 +154,6 @@ public class LineSpeedup {
         }
 
         return output.toString();
-    }
-
-    /**
-     * Given a series to be displayed on a chart, render all of the data points
-     * corresponding to speedup values for this LineSpeedup object.
-     *
-     * @throws InsufficientBaselineResultsException When there aren't a sufficient number
-     *                                              of samples to render this series.
-     */
-    public Series<Number, Number> renderSeries(int minSamples) throws InsufficientBaselineResultsException {
-        this.updateSpeedupMap(minSamples);
-
-        //populating the series with data
-        Series<Number, Number> series = new Series<>();
-        String classSig = this.experiments.get(0).getClassSig();
-        series.setName(classSig + ":" + this.getLineNo());
-
-        // Populate list with data points.
-        for (Map.Entry<Double, Double> entry : speedupMap.entrySet()) {
-            series.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
-        }
-
-        return series;
     }
 
     public List<Experiment> getExperiments() {
