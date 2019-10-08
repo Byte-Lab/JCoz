@@ -1,4 +1,6 @@
-FROM fedora:30
+ARG FEDORA_VERSION=30
+
+FROM fedora:${FEDORA_VERSION} as build
 
 RUN yum install -y \
     gcc-c++ \
@@ -13,3 +15,15 @@ COPY . /jcoz
 WORKDIR /jcoz
 
 RUN make -j`nproc` all
+
+FROM fedora:${FEDORA_VERSION}
+
+RUN yum install -y java-1.8.0-openjdk-devel
+
+COPY --from=build /jcoz/build*/liblagent.so /jcoz/
+COPY --from=build /jcoz/src/java/target/*.jar /jcoz/
+COPY --from=build /jcoz/src/java/src/test/java/test /jcoz/test/
+
+WORKDIR /jcoz
+
+CMD ["/bin/bash"]
