@@ -34,13 +34,21 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.rmi.RemoteException;
 import java.util.*;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author matt
  */
 public class JCozServiceImpl implements JCozServiceInterface {
+
+    private static final Logger logger = LoggerFactory.getLogger(JCozServiceImpl.class);
+
 
     private static final String CONNECTOR_ADDRESS_PROPERTY_KEY = "com.sun.management.jmxremote.localConnectorAddress";
 
@@ -56,11 +64,11 @@ public class JCozServiceImpl implements JCozServiceInterface {
      * getJavaProcessDescriptions()
      */
     @Override
-    public List<JCozVMDescriptor> getJavaProcessDescriptions()
-            throws RemoteException {
-        System.out.println("in get java process descriptions");
+    public List<JCozVMDescriptor> getJavaProcessDescriptions() throws RemoteException {
+        logger.info("Getting Java Process Descriptions");
         ArrayList<JCozVMDescriptor> stringDesc = new ArrayList<>();
         for (VirtualMachineDescriptor desc : VirtualMachine.list()) {
+            logger.debug("Adding description {} with id {}", desc.displayName(), desc.id());
             stringDesc.add(new JCozVMDescriptor(Integer.parseInt(desc.id()), desc.displayName()));
         }
         return stringDesc;
@@ -74,9 +82,8 @@ public class JCozServiceImpl implements JCozServiceInterface {
      * (int)
      */
     @Override
-    public int attachToProcess(int localProcessId)
-            throws RemoteException {
-        System.out.println("attach");
+    public int attachToProcess(int localProcessId) throws RemoteException {
+        logger.info("Attaching to process {}", localProcessId);
         try {
             for (VirtualMachineDescriptor desc : VirtualMachine.list()) {
                 if (Integer.parseInt(desc.id()) == localProcessId) {
@@ -96,9 +103,11 @@ public class JCozServiceImpl implements JCozServiceInterface {
                 }
             }
         } catch (IOException | NumberFormatException
-                | AttachNotSupportedException exception) {
-            exception.printStackTrace();
-            throw new RemoteException("", exception);
+                | AttachNotSupportedException e) {
+            StringWriter stringWriter = new StringWriter();
+            e.printStackTrace(new PrintWriter(stringWriter));
+            logger.error("Got an exception during attachToProcess, stacktrace: {}", stringWriter);
+            throw new RemoteException("", e);
 
         }
         return JCozProfilingErrorCodes.INVALID_JAVA_PROCESS;

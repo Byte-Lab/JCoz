@@ -38,7 +38,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class JCozClient {
+
+    private static final Logger logger = LoggerFactory.getLogger(JCozClient.class);
 
     private static final String CONNECTOR_ADDR_PROPERTY = "com.sun.management.jmxremote.localConnectorAddress";
 
@@ -57,18 +62,22 @@ public class JCozClient {
     }
 
     public void setProgressPoint(String progressPoint, int lineNo) {
+        logger.debug("Setting progressPoint {} on line {}", progressPoint, lineNo);
         this.mxbeanProxy.setProgressPoint(progressPoint, lineNo);
     }
 
     public void setScope(String scope) {
+        logger.info("Scope set to {}", scope);
         this.mxbeanProxy.setScope(scope);
     }
 
     public void startProfiling() {
+        logger.info("Started Profiling");
         this.mxbeanProxy.startProfiling();
     }
 
     public void endProfiling() {
+        logger.info("Profiling ended");
         this.mxbeanProxy.endProfiling();
     }
 
@@ -83,8 +92,8 @@ public class JCozClient {
      */
     public void printAgentProperties() throws Exception {
         Properties props = this.vm.getAgentProperties();
-        for (Entry<Object, Object> e : props.entrySet()) {
-            System.out.println(e);
+        for (Entry<Object, Object> entry : props.entrySet()) {
+            logger.info("Entry: {}", entry);
         }
     }
 
@@ -94,6 +103,7 @@ public class JCozClient {
      * @throws Exception If you try to detach a null VM.
      */
     public void closeConnection() throws Exception {
+        logger.info("Closing connection to client");
         this.connector.close();
         this.vm.detach();
     }

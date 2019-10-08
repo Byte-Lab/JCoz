@@ -28,13 +28,19 @@ import jcoz.service.JCozException;
 import jcoz.service.VirtualMachineConnectionException;
 import org.apache.commons.cli.*;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author matt
  */
 public class JCozCLI {
+
+    private static final Logger logger = LoggerFactory.getLogger(JCozCLI.class);
 
     public static void main(String[] args) throws ParseException, VirtualMachineConnectionException, JCozException, InterruptedException {
         Options ops = new Options();
@@ -68,19 +74,20 @@ public class JCozCLI {
         try {
             ppLineNo = Integer.parseInt(cl.getOptionValue('l'));
         } catch (NumberFormatException e) {
-            System.err.println("Invalid Line Number : " + cl.getOptionValue('l'));
+            logger.error("Invalid Line Number: {}", cl.getOptionValue('l'));
             System.exit(-1);
         }
         try {
             pid = Integer.parseInt(cl.getOptionValue('p'));
         } catch (NumberFormatException e) {
-            System.err.println("Invalid pid : " + cl.getOptionValue('l'));
+            logger.error("Invalid pid: {}", cl.getOptionValue('l'));
             System.exit(-1);
         }
 
         String remoteHost = cl.getOptionValue('h');
         boolean isRemote = remoteHost != null && !remoteHost.equals("");
         if (isRemote) {
+            logger.info("Connecting to remote host {}", remoteHost);
             try {
                 Profile profile = new Profile(remoteHost);
                 final RemoteServiceWrapper remoteService = new RemoteServiceWrapper(remoteHost);
@@ -97,10 +104,12 @@ public class JCozCLI {
                     profile.addExperiments(experiments);
                 }
             } catch (JCozException e) {
-                System.err.println("Unable to connect to target process.");
-                e.printStackTrace();
+                StringWriter stringWriter = new StringWriter();
+                e.printStackTrace(new PrintWriter(stringWriter));
+                logger.error("Unable to connect to target process, stacktrace: {}", stringWriter);
             }
         } else {
+            logger.info("Connecting to localhost");
             VirtualMachineDescriptor descriptor = null;
             for (VirtualMachineDescriptor vmDesc : VirtualMachine.list()) {
                 if (vmDesc.id().equals(Integer.toString(pid))) {
@@ -109,7 +118,7 @@ public class JCozCLI {
                 }
             }
             if (descriptor == null) {
-                System.err.println("Could not find java process with pid : " + pid);
+                logger.error("Could not find java process with pid: {}", pid);
                 return;
             }
 
@@ -117,6 +126,7 @@ public class JCozCLI {
             //catch SIGINT and end profiling
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 try {
+                    logger.debug("Caught shutdown hook, ending profiling.");
                     wrapper.endProfiling();
                     System.exit(0);
                 } catch (JCozException e) {
@@ -128,11 +138,10 @@ public class JCozCLI {
             wrapper.startProfiling();
             while (true) {
                 for (Experiment e : wrapper.getProfilerOutput()) {
-                    System.out.println(e.toString());
+                    logger.info("Experiment: {}", e);
                 }
                 Thread.sleep(1000);
             }
-
         }
     }
 }

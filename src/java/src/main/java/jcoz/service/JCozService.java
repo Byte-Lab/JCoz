@@ -25,17 +25,23 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * @author matt
  */
 public class JCozService {
+
+    private static final Logger logger = LoggerFactory.getLogger(JCozService.class);
+
     public static final int DEFAULT_SERVICE_PORT = 2216; // for VP
 
     public static final String SERVICE_NAME = "JCozService";
 
-    // first element is port otherwise use default
-    public static void main(String[] args) throws JCozException,
-            RemoteException {
+    // first argument is port otherwise use default
+    public static void main(String[] args) throws JCozException, RemoteException {
+
         int port = DEFAULT_SERVICE_PORT;
         if (args.length > 0) {
             try {
@@ -50,12 +56,12 @@ public class JCozService {
                 .exportObject(engine, 0);
         registry.rebind(SERVICE_NAME, stub);
         // wait forever
+        logger.info("Started listening on port {}", port);
         synchronized (JCozService.class) {
             while (true) {
                 try {
                     JCozService.class.wait();
                 } catch (InterruptedException e) {
-                    System.out.println("JCozService.class interrupted");
                     Thread.currentThread().interrupt();
                 }
             }

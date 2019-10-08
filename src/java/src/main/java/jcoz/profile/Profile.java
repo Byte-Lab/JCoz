@@ -20,13 +20,14 @@
  */
 package jcoz.profile;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A jcoz.profile for a given application. It contains all speedup data for
@@ -36,11 +37,14 @@ import java.util.Map;
  * @author David
  */
 public class Profile {
+
+    private static final Logger logger = LoggerFactory.getLogger(Profile.class);
+
     private Map<String, ClassSpeedup> classSpeedups = new HashMap<>();
 
     private String process;
 
-    RandomAccessFile stream;
+    private RandomAccessFile stream;
 
     public Profile(String process) {
         this.process = process;
@@ -54,22 +58,23 @@ public class Profile {
      * @param experiments List of new experiments to add to jcoz.profile.
      */
     public synchronized void addExperiments(List<Experiment> experiments) {
-        for (Experiment exp : experiments) {
-            System.out.println(exp);
-            String classSig = exp.getClassSig();
+        for (Experiment experiment : experiments) {
+            logger.info("Adding experiment {}", experiment);
+            String classSig = experiment.getClassSig();
             if (!this.classSpeedups.containsKey(classSig)) {
-                this.classSpeedups.put(classSig, new ClassSpeedup(exp));
+                this.classSpeedups.put(classSig, new ClassSpeedup(experiment));
             } else {
-                this.classSpeedups.get(classSig).addExperiment(exp);
+                this.classSpeedups.get(classSig).addExperiment(experiment);
             }
         }
 
         try {
             this.flushExperimentsToCozFile(experiments);
         } catch (IOException e) {
-            System.err.println("Unable to flush new experiments to file.");
-            e.printStackTrace();
-        }
+            StringWriter stringWriter = new StringWriter();
+            e.printStackTrace(new PrintWriter(stringWriter));
+            logger.error("Unable to flush new experiments to file, stacktrace: {}", stringWriter);
+       }
     }
 
     /**
@@ -102,8 +107,9 @@ public class Profile {
             this.flushExperimentsToCozFile(experiments);
             this.stream.close();
         } catch (IOException e) {
-            System.err.println("Unable to flush and close stream");
-            e.printStackTrace();
+            StringWriter stringWriter = new StringWriter();
+            e.printStackTrace(new PrintWriter(stringWriter));
+            logger.error("Unable to flush and close stream, stacktrace: {}", stringWriter);
         }
     }
 
@@ -130,12 +136,14 @@ public class Profile {
      */
     private void initializeProfileLogging() {
         File profile = new File(this.process + ".coz");
+        logger.info("Creating profile {}", profile.getAbsolutePath());
         try {
             this.stream = new RandomAccessFile(profile, "rw");
             this.readExperimentsFromLogFile();
         } catch (IOException e) {
-            System.err.println("Unable to create jcoz.profile output file or read jcoz.profile output from file");
-            e.printStackTrace();
+            StringWriter stringWriter = new StringWriter();
+            e.printStackTrace(new PrintWriter(stringWriter));
+            logger.error("Unable to create jcoz.profile output file or read jcoz.profile output from file, stacktrace: {}", stringWriter);
         }
     }
 
@@ -152,7 +160,7 @@ public class Profile {
             String line2 = this.stream.readLine();
 
             Experiment newExp = new Experiment(line1 + "\n" + line2);
-            System.out.println(newExp);
+            logger.info("Experiment {}", newExp);
 
             String classSig = newExp.getClassSig();
             if (!this.classSpeedups.containsKey(classSig)) {
