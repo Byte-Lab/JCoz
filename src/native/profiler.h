@@ -33,7 +33,11 @@
 #include "stacktraces.h"
 #include "spdlog/spdlog.h"
 #ifdef SPDLOG_VERSION
+#ifdef SPDLOG_OLD
+#include "spdlog/sinks/file_sinks.h"
+#else
 #include "spdlog/sinks/basic_file_sink.h"
+#endif
 #endif
 
 #ifndef PROFILER_H

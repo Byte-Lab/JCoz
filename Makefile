@@ -59,6 +59,10 @@ GLOBAL_COPTS=-fdiagnostics-show-option \
 	-g \
 	-D__STDC_FORMAT_MACROS
 
+ifeq ($(shell test -f "/usr/include/spdlog/sinks/file_sinks.h" && echo -n yes), yes)
+	PLATFORM_COPTS := $(PLATFORM_COPTS) -DSPDLOG_OLD
+endif
+
 COPTS:=$(PLATFORM_COPTS) \
 	$(GLOBAL_COPTS) \
 	$(PLATFORM_WARNINGS) \
