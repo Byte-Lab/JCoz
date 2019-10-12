@@ -87,8 +87,6 @@ class Profiler {
 
   void Stop();
 
-  void ParseOptions(const char *options);
-
   static std::string &getPackage() { return package; }
 
   static std::string &getProgressClass() { return progress_class; }
