@@ -412,11 +412,6 @@ AGENTEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options,
     return 1;
   }
 
-
-
-//  // Read the command line options and set progress points and package
-//  prof->ParseOptions(options);
-
   if (!PrepareJvmti(jvmti)) {
     fprintf(stderr, "Failed to initialize JVMTI.  Continuing...\n");
     return 0;

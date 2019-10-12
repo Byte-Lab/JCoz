@@ -132,73 +132,11 @@ inline long jcoz_sleep(long nanoseconds) {
 	return total_sleep.count();
 }
 
-void Profiler::ParseOptions(const char *options) {
-
-    if( options == NULL ) {
-    	fprintf(stderr, "Missing options\n");
-        print_usage();
-        exit(1);
-    }else{
-    	logger->info("Received options: {}", options);
-    }
-    std::string options_str(options);
-    std::stringstream ss(options_str);
-    std::string item;
-    std::vector<std::string> cmd_line_options;
-    progress_point = new ProgressPoint();
-    progress_point->lineno = -1;
-    progress_point->method_id = nullptr;
-
-    // split underscore delimited line into options
-    // (we can't use semicolon because bash is dumb)
-    while( std::getline(ss, item, '_') ) {
-        cmd_line_options.push_back(item);
-    }
-
-    for( auto i = cmd_line_options.begin(); i != cmd_line_options.end(); i++ ) {
-        size_t equal_index = i->find('=');
-        std::string option = i->substr(0, equal_index);
-        std::string value = i->substr(equal_index + 1);
-
-        // extract package
-        if( option == "pkg" || option == "package" ) {
-            this->package = value;
-        } else if (option == "progress-point") {
-
-        // else extract progress point
-            size_t colon_index = value.find(':');
-            if( colon_index == std::string::npos ) {
-            	fprintf(stderr, "Missing progress point\n");
-                print_usage();
-                exit(1);
-            }
-
-            this->progress_class = value.substr(0, colon_index);
-            progress_point->lineno = std::stoi(value.substr(colon_index + 1));
-
-        } else if (option == "end-to-end") {
-            end_to_end = true;
-        } else if (option == "warmup") {
-            // We expect # of milliseconds so multiply by 1000 for usleep (takes microseconds)
-            warmup_time = std::stol(value) * 1000;
-        } else if (option == "fix-exp" ) {
-            fix_exp = true;
-        }
-    }
-
-    if( this->package.empty() || (!end_to_end && (progress_class.empty() || progress_point->lineno == -1)) ) {
-    	fprintf(stderr, "Missing package, progress class, or progress point\n");
-        print_usage();
-        exit(1);
-    }
-}
-
 void Profiler::init(){
 	progress_point = new ProgressPoint();
 	progress_point->lineno = -1;
 	progress_point->method_id = nullptr;
 }
-
 
 jvmtiEnv * Profiler::getJVMTI(){
 	return jvmti_;

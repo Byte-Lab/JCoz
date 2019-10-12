@@ -16,6 +16,7 @@
 bin/
 build-64/
 build/
+jcoz/
 out
 questions
 src/java/target
