@@ -1,0 +1,12 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+p {
+	text-align: justify;
+}
+
+.wrapper {
+	max-width: calc(1000px - ( 30px *2 ) );
+}
