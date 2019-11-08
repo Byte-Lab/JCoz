@@ -101,12 +101,21 @@ clean:
 	rm -rf src/java/src/test/java/test/*.class
 	rm -rf src/java/target
 
-run:
+run-workload:
 	cd src/java/src/test/java/; \
 	java \
 	  -agentpath:$(BUILD_DIR)/liblagent.so \
 	  -cp $$(readlink -f ../../../target/client*dependencies.jar):. \
-	  test.TestThreadSerial &
+	  test.TestThreadSerial --fast
 
-kill:
-	pkill -9 java
+run-rmi-host:
+	java \
+	  -cp ./src/java/target/client-0.0.1-jar-with-dependencies.jar:/usr/lib/jvm/java-8-openjdk-amd64/lib/tools.jar \
+	  jcoz.service.JCozService
+
+run-profiler:
+	cd src/java/src/test/java/; \
+	java \
+	  -agentpath:$(BUILD_DIR)/liblagent.so \
+	  -cp $$(readlink -f ../../../target/client*dependencies.jar):. \
+	  test.JCozServiceTest
