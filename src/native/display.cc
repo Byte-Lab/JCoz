@@ -139,8 +139,8 @@ jint StackTracesPrinter::GetLineNumber(jmethodID method, jlocation location) {
   }
 
   int jvmti_error = jvmti_->GetLineNumberTable(method,
-                                              &entry_count,
-                                              table_ptr_ctr.GetRef());
+      &entry_count,
+      table_ptr_ctr.GetRef());
 
   // Go through all the line numbers...
   if (JVMTI_ERROR_NONE != jvmti_error) {
@@ -170,16 +170,16 @@ jint StackTracesPrinter::GetLineNumber(jmethodID method, jlocation location) {
 }
 
 bool StackTracesPrinter::GetStackFrameElements(JVMPI_CallFrame *frame,
-                                               string *file_name,
-                                               string *class_name,
-                                               string *method_name,
-                                               int *line_number) {
+    string *file_name,
+    string *class_name,
+    string *method_name,
+    int *line_number) {
   jint error;
   JvmtiScopedPtr<char> name_ptr(jvmti_);
 
   // Get method name, put it in name_ptr
   if ((error = jvmti_->GetMethodName(frame->method_id, name_ptr.GetRef(), NULL,
-                                     NULL)) !=
+          NULL)) !=
       JVMTI_ERROR_NONE) {
     name_ptr.AbandonBecauseOfError();
     if (error == JVMTI_ERROR_INVALID_METHODID) {
@@ -187,10 +187,10 @@ bool StackTracesPrinter::GetStackFrameElements(JVMPI_CallFrame *frame,
       if (!once) {
         once = 1;
         fprintf(stderr, "One of your monitoring interfaces "
-                        "is having trouble resolving its stack traces.  "
-                        "GetMethodName on a jmethodID involved in a stacktrace "
-                        "resulted in an INVALID_METHODID error which usually "
-                        "indicates its declaring class has been unloaded.\n");
+            "is having trouble resolving its stack traces.  "
+            "GetMethodName on a jmethodID involved in a stacktrace "
+            "resulted in an INVALID_METHODID error which usually "
+            "indicates its declaring class has been unloaded.\n");
         fprintf(stderr, "Unexpected JVMTI error %d in GetMethodName", error);
       }
     }
@@ -245,9 +245,9 @@ bool StackTracesPrinter::PrintStackFrame(JVMPI_CallFrame *frame) {
   string method_name, class_name, file_name;
   int line_num;
   GetStackFrameElements(frame, &file_name, &class_name, &method_name,
-                        &line_num);
+      &line_num);
   fprintf(file_, "\t%s.%s(%s:%d)\n", class_name.c_str(), method_name.c_str(),
-          file_name.c_str(), line_num);
+      file_name.c_str(), line_num);
   return true;
 }
 

@@ -91,14 +91,14 @@ public class JCozServiceImpl implements JCozServiceInterface {
                     vm.startLocalManagementAgent();
                     Properties props = vm.getAgentProperties();
                     String connectorAddress = props
-                            .getProperty(CONNECTOR_ADDRESS_PROPERTY_KEY);
+                        .getProperty(CONNECTOR_ADDRESS_PROPERTY_KEY);
                     JMXServiceURL url = new JMXServiceURL(connectorAddress);
                     JMXConnector connector = JMXConnectorFactory.connect(url);
                     MBeanServerConnection mbeanConn = connector
-                            .getMBeanServerConnection();
+                        .getMBeanServerConnection();
                     attachedVMs.put(localProcessId, JMX.newMXBeanProxy(mbeanConn,
-                            JCozProfiler.getMBeanName(),
-                            JCozProfilerMBean.class));
+                                JCozProfiler.getMBeanName(),
+                                JCozProfilerMBean.class));
                     return JCozProfilingErrorCodes.NORMAL_RETURN;
                 }
             }
@@ -109,7 +109,7 @@ public class JCozServiceImpl implements JCozServiceInterface {
             logger.error("Got an exception during attachToProcess, stacktrace: {}", stringWriter);
             throw new RemoteException("", e);
 
-        }
+                }
         return JCozProfilingErrorCodes.INVALID_JAVA_PROCESS;
     }
 

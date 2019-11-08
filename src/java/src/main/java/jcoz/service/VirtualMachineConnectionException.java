@@ -21,26 +21,26 @@
 package jcoz.service;
 
 public class VirtualMachineConnectionException extends Exception{
-	
-	/**
-	 * serialVersionUID
-	 */
-	private static final long serialVersionUID = -5647339266057359107L;
-	
-	public VirtualMachineConnectionException(){
-		super();
-	}
 
-	public VirtualMachineConnectionException(String message) {
-		super(message);
-	}
-	
-	public VirtualMachineConnectionException(Throwable cause){
-		super(cause);
-	}
-	
-	public VirtualMachineConnectionException(String message, Throwable cause){
-		super(message, cause);
-	}
+    /**
+     * serialVersionUID
+     */
+    private static final long serialVersionUID = -5647339266057359107L;
+
+    public VirtualMachineConnectionException(){
+        super();
+    }
+
+    public VirtualMachineConnectionException(String message) {
+        super(message);
+    }
+
+    public VirtualMachineConnectionException(Throwable cause){
+        super(cause);
+    }
+
+    public VirtualMachineConnectionException(String message, Throwable cause){
+        super(message, cause);
+    }
 
 }

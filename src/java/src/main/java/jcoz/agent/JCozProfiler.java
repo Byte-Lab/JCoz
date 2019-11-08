@@ -163,9 +163,9 @@ public class JCozProfiler implements JCozProfilerMBean {
      * @param pointsHit
      */
     private synchronized void cacheOutput(String classSig, int lineNo,
-                                          float speedup, long duration, long pointsHit) {
+            float speedup, long duration, long pointsHit) {
         cachedOutput.add(new Experiment(classSig, lineNo, speedup, duration,
-                pointsHit));
+                    pointsHit));
         if (System.currentTimeMillis() - lastCollectionMillis > INACTIVITY_THRESHOLD) {
             new Thread(() -> endProfiling()).start();
         }

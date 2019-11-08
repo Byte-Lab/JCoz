@@ -35,26 +35,26 @@ import jcoz.service.JCozException;
  *
  */
 public class JCozServiceTest {
-	
 
-	public static void main(String[] args) throws RemoteException, NotBoundException, JCozException, InterruptedException{
-		RemoteServiceWrapper service = new RemoteServiceWrapper("localhost");
-		
-		TargetProcessInterface remote = null;
-		for (JCozVMDescriptor desc : service.listRemoteVirtualMachines()){
-			if (desc.getDisplayName().contains("TestThreadSerial")){
-				remote = service.attachToProcess(desc.getPid());
-			}
-		}
-		remote.setProgressPoint("test.TestThreadSerial", 38);
-		remote.setScope("test");
-		remote.startProfiling();
-		for(int i =0; i < 30; i++){
-			for(Experiment exp: remote.getProfilerOutput()){
-				System.out.println(exp);
-			}
-			Thread.sleep(1000);
-		}
-		remote.endProfiling();
-	}
+
+    public static void main(String[] args) throws RemoteException, NotBoundException, JCozException, InterruptedException{
+        RemoteServiceWrapper service = new RemoteServiceWrapper("localhost");
+
+        TargetProcessInterface remote = null;
+        for (JCozVMDescriptor desc : service.listRemoteVirtualMachines()){
+            if (desc.getDisplayName().contains("TestThreadSerial")){
+                remote = service.attachToProcess(desc.getPid());
+            }
+        }
+        remote.setProgressPoint("test.TestThreadSerial", 38);
+        remote.setScope("test");
+        remote.startProfiling();
+        for(int i =0; i < 30; i++){
+            for(Experiment exp: remote.getProfilerOutput()){
+                System.out.println(exp);
+            }
+            Thread.sleep(1000);
+        }
+        remote.endProfiling();
+    }
 }

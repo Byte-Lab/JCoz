@@ -40,38 +40,38 @@
 #define PROFILER_H
 
 struct Experiment {
-    long points_hit = 0;
-    float speedup;
-    long delay;
-    long duration = 0;
-    jmethodID method_id;
-    jint lineno;
-    std::pair<jint,jint> *location_ranges;
-    int num_ranges;
+  long points_hit = 0;
+  float speedup;
+  long delay;
+  long duration = 0;
+  jmethodID method_id;
+  jint lineno;
+  std::pair<jint,jint> *location_ranges;
+  int num_ranges;
 };
 
 struct UserThread {
-    pthread_t thread;
-    long local_delay = 0;
-    long points_hit = 0;
-    unsigned int num_signals_received = 0;
-    jthread java_thread;
+  pthread_t thread;
+  long local_delay = 0;
+  long points_hit = 0;
+  unsigned int num_signals_received = 0;
+  jthread java_thread;
 };
 
 struct ProgressPoint {
-    jmethodID method_id;
-    jint lineno;
-    jlocation location;
+  jmethodID method_id;
+  jint lineno;
+  jlocation location;
 };
 
 class SignalHandler {
- public:
-  SignalHandler() {}
+  public:
+    SignalHandler() {}
 
-  struct sigaction SetAction(void (*sigaction)(int, siginfo_t *, void *));
+    struct sigaction SetAction(void (*sigaction)(int, siginfo_t *, void *));
 
- private:
-  DISALLOW_COPY_AND_ASSIGN(SignalHandler);
+  private:
+    DISALLOW_COPY_AND_ASSIGN(SignalHandler);
 };
 
 struct TraceData {
@@ -80,150 +80,150 @@ struct TraceData {
 };
 
 class Profiler {
- public:
-  explicit Profiler(jvmtiEnv *jvmti) : jvmti_(jvmti) {}
+  public:
+    explicit Profiler(jvmtiEnv *jvmti) : jvmti_(jvmti) {}
 
-  void Start();
+    void Start();
 
-  void Stop();
+    void Stop();
 
-  static std::string &getPackage() { return package; }
+    static std::string &getPackage() { return package; }
 
-  static std::string &getProgressClass() { return progress_class; }
+    static std::string &getProgressClass() { return progress_class; }
 
-  static std::shared_ptr<spdlog::logger> &getLogger() { return logger; };
+    static std::shared_ptr<spdlog::logger> &getLogger() { return logger; };
 
-  static std::unordered_set<void *> &getInScopeMethods() { return in_scope_ids; }
+    static std::unordered_set<void *> &getInScopeMethods() { return in_scope_ids; }
 
-  static struct Experiment &getCurrentExperiment() { return current_experiment; }
+    static struct Experiment &getCurrentExperiment() { return current_experiment; }
 
-  static bool inExperiment() { return in_experiment; }
+    static bool inExperiment() { return in_experiment; }
 
-  static std::unordered_set<struct UserThread*> &getUserThreads() { return user_threads; }
+    static std::unordered_set<struct UserThread*> &getUserThreads() { return user_threads; }
 
-  static void runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args);
+    static void runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args);
 
-  static void addUserThread(jthread thread);
+    static void addUserThread(jthread thread);
 
-  static void removeUserThread(jthread thread);
+    static void removeUserThread(jthread thread);
 
-  void setJVMTI(jvmtiEnv *jvmti);
+    void setJVMTI(jvmtiEnv *jvmti);
 
-  jvmtiEnv * getJVMTI();
+    jvmtiEnv * getJVMTI();
 
-  static void addInScopeMethods(jint method_count, jmethodID *methods);
+    static void addInScopeMethods(jint method_count, jmethodID *methods);
 
-  static void addProgressPoint(jint method_count, jmethodID *methods);
+    static void addProgressPoint(jint method_count, jmethodID *methods);
 
-  static void clearProgressPoint();
+    static void clearProgressPoint();
 
-  static void printInScopeLineNumberMapping();
+    static void printInScopeLineNumberMapping();
 
-  static void HandleBreakpoint(
-          jvmtiEnv *jvmti,
-          JNIEnv *jni_env,
-          jthread thread,
-          jmethodID method_id,
-          jlocation location
-  );
+    static void HandleBreakpoint(
+        jvmtiEnv *jvmti,
+        JNIEnv *jni_env,
+        jthread thread,
+        jmethodID method_id,
+        jlocation location
+        );
 
-  void setScope(std::string package);
+    void setScope(std::string package);
 
-  void setProgressPoint(std::string class_name, jint line_no);
+    void setProgressPoint(std::string class_name, jint line_no);
 
-  void setMBeanObject(jobject mbean);
+    void setMBeanObject(jobject mbean);
 
-  jobject getMBeanObject();
+    jobject getMBeanObject();
 
-  void clearMBeanObject();
+    void clearMBeanObject();
 
-  void setJNI(JNIEnv* jni);
+    void setJNI(JNIEnv* jni);
 
-  static void clearInScopeMethods();
+    static void clearInScopeMethods();
 
-  static bool isRunning();
+    static bool isRunning();
 
-  void init();
+    void init();
 
- private:
+  private:
 
-  jvmtiEnv *jvmti_;
+    jvmtiEnv *jvmti_;
 
-  SignalHandler handler_;
+    SignalHandler handler_;
 
-  struct sigaction old_action_;
+    struct sigaction old_action_;
 
-  static JNIEnv *jni_;
+    static JNIEnv *jni_;
 
-  static void Handle(int signum, siginfo_t *info, void *context);
+    static void Handle(int signum, siginfo_t *info, void *context);
 
-  static bool inline inExperiment(JVMPI_CallFrame &curr_frame);
-  static bool inline frameInScope(JVMPI_CallFrame &curr_frame);
-  DISALLOW_COPY_AND_ASSIGN(Profiler);
+    static bool inline inExperiment(JVMPI_CallFrame &curr_frame);
+    static bool inline frameInScope(JVMPI_CallFrame &curr_frame);
+    DISALLOW_COPY_AND_ASSIGN(Profiler);
 
-  static jobject mbean;
+    static jobject mbean;
 
-  static jmethodID mbean_cache_method_id;
+    static jmethodID mbean_cache_method_id;
 
-  static std::unordered_set<void *> in_scope_ids;
+    static std::unordered_set<void *> in_scope_ids;
 
-  static struct Experiment current_experiment;
+    static struct Experiment current_experiment;
 
-  static std::vector<JVMPI_CallFrame> call_frames;
+    static std::vector<JVMPI_CallFrame> call_frames;
 
-  static volatile int frame_lock;
+    static volatile int frame_lock;
 
-  static volatile int user_threads_lock;
+    static volatile int user_threads_lock;
 
-  static volatile bool in_experiment;
+    static volatile bool in_experiment;
 
-  static std::atomic_ulong points_hit;
+    static std::atomic_ulong points_hit;
 
-  static std::unordered_set<struct UserThread*> user_threads;
+    static std::unordered_set<struct UserThread*> user_threads;
 
-  static bool thread_in_main(jthread thread);
+    static bool thread_in_main(jthread thread);
 
-  static jvmtiEnv *jvmti;
+    static jvmtiEnv *jvmti;
 
-  static std::atomic<long> global_delay;
+    static std::atomic<long> global_delay;
 
-  static std::atomic_bool _running;
+    static std::atomic_bool _running;
 
-  static void runExperiment(JNIEnv * jnienv);
+    static void runExperiment(JNIEnv * jnienv);
 
-  static float calculate_random_speedup();
+    static float calculate_random_speedup();
 
-  static void signal_user_threads();
+    static void signal_user_threads();
 
-  static volatile bool end_to_end;
+    static volatile bool end_to_end;
 
-  static pthread_t agent_pthread;
+    static pthread_t agent_pthread;
 
-  static char *getClassFromMethodIDLocation(jmethodID method_id);
+    static char *getClassFromMethodIDLocation(jmethodID method_id);
 
-  static volatile pthread_t in_scope_lock;
+    static volatile pthread_t in_scope_lock;
 
-  static std::atomic_bool profile_done;
+    static std::atomic_bool profile_done;
 
-  static void cleanSignature(char *sig);
+    static void cleanSignature(char *sig);
 
-  static std::string package;
+    static std::string package;
 
-  static void print_usage();
+    static void print_usage();
 
-  static struct ProgressPoint *progress_point;
+    static struct ProgressPoint *progress_point;
 
-  static std::string progress_class;
+    static std::string progress_class;
 
-  static unsigned long experiment_time;
+    static unsigned long experiment_time;
 
-  static unsigned long warmup_time;
+    static unsigned long warmup_time;
 
-  static bool prof_ready;
+    static bool prof_ready;
 
-  static bool fix_exp;
+    static bool fix_exp;
 
-  static std::shared_ptr<spdlog::logger> logger;
+    static std::shared_ptr<spdlog::logger> logger;
 };
 
 #endif  // PROFILER_H

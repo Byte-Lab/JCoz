@@ -41,10 +41,10 @@ public class Experiment implements Comparable<Experiment> {
      * @param pointsHit number of time the progress point was hit in the experiment
      */
     public Experiment(String classSig,
-                      int lineNo,
-                      float speedup,
-                      long duration,
-                      long pointsHit) {
+            int lineNo,
+            float speedup,
+            long duration,
+            long pointsHit) {
         this.classSig = classSig;
         this.lineNo = lineNo;
         this.speedup = speedup;
@@ -138,26 +138,26 @@ public class Experiment implements Comparable<Experiment> {
     @Override
     public String toString() {
         return "experiment" +
-                "\t" +
-                "selected=" +
-                classSig +
-                ":" +
-                lineNo +
-                "\t" +
-                "speedup=" +
-                speedup +
-                "\t" +
-                "duration=" +
-                duration +
-                "\n" +
-                "progress-point" +
-                "\t" +
-                "name=end-to-end" +
-                "\t" +
-                "type=source" +
-                "\t" +
-                "delta=" +
-                pointsHit;
+            "\t" +
+            "selected=" +
+            classSig +
+            ":" +
+            lineNo +
+            "\t" +
+            "speedup=" +
+            speedup +
+            "\t" +
+            "duration=" +
+            duration +
+            "\n" +
+            "progress-point" +
+            "\t" +
+            "name=end-to-end" +
+            "\t" +
+            "type=source" +
+            "\t" +
+            "delta=" +
+            pointsHit;
     }
 
     /**

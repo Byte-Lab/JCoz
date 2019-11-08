@@ -25,24 +25,24 @@ package jcoz.service;
  *
  */
 public class InvalidWhenProfilerNotRunningException extends JCozException {
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -5261057789740229989L;
+    /**
+     * 
+     */
+    private static final long serialVersionUID = -5261057789740229989L;
 
-	public InvalidWhenProfilerNotRunningException(){
-		super();
-	}
+    public InvalidWhenProfilerNotRunningException(){
+        super();
+    }
 
-	public InvalidWhenProfilerNotRunningException(String message) {
-		super(message);
-	}
-	
-	public InvalidWhenProfilerNotRunningException(Throwable cause){
-		super(cause);
-	}
-	
-	public InvalidWhenProfilerNotRunningException(String message, Throwable cause){
-		super(message, cause);
-	}
+    public InvalidWhenProfilerNotRunningException(String message) {
+        super(message);
+    }
+
+    public InvalidWhenProfilerNotRunningException(Throwable cause){
+        super(cause);
+    }
+
+    public InvalidWhenProfilerNotRunningException(String message, Throwable cause){
+        super(message, cause);
+    }
 }

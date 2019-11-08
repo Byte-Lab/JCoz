@@ -25,24 +25,24 @@ package jcoz.service;
  *
  */
 public class NoScopeSetException extends JCozException{
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 6838450945616708964L;
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 6838450945616708964L;
 
-	public NoScopeSetException(){
-		super();
-	}
+    public NoScopeSetException(){
+        super();
+    }
 
-	public NoScopeSetException(String message) {
-		super(message);
-	}
-	
-	public NoScopeSetException(Throwable cause){
-		super(cause);
-	}
-	
-	public NoScopeSetException(String message, Throwable cause){
-		super(message, cause);
-	}
+    public NoScopeSetException(String message) {
+        super(message);
+    }
+
+    public NoScopeSetException(Throwable cause){
+        super(cause);
+    }
+
+    public NoScopeSetException(String message, Throwable cause){
+        super(message, cause);
+    }
 }

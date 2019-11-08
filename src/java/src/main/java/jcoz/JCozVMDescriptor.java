@@ -30,35 +30,35 @@ import java.io.Serializable;
  */
 public class JCozVMDescriptor implements Serializable{
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -1232246806223243256L;
-	
-	private int pid;
-	private String displayName;
-	
-	
-	/**
-	 * @param pid
-	 * @param displayName
-	 */
-	public JCozVMDescriptor(int pid, String displayName) {
-		this.pid = pid;
-		this.displayName = displayName;
-	}
-	
-	/**
-	 * @return the pid
-	 */
-	public int getPid() {
-		return pid;
-	}
-	/**
-	 * @return the displayName
-	 */
-	public String getDisplayName() {
-		return displayName;
-	}
+    /**
+     * 
+     */
+    private static final long serialVersionUID = -1232246806223243256L;
+
+    private int pid;
+    private String displayName;
+
+
+    /**
+     * @param pid
+     * @param displayName
+     */
+    public JCozVMDescriptor(int pid, String displayName) {
+        this.pid = pid;
+        this.displayName = displayName;
+    }
+
+    /**
+     * @return the pid
+     */
+    public int getPid() {
+        return pid;
+    }
+    /**
+     * @return the displayName
+     */
+    public String getDisplayName() {
+        return displayName;
+    }
 
 }

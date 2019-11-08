@@ -22,24 +22,24 @@ package jcoz.profile;
 
 public class InsufficientBaselineResultsException extends Exception {
 
-	/**
-	 * Generated serial version UID.
-	 */
-	private static final long serialVersionUID = 7984069459706340151L;
+    /**
+     * Generated serial version UID.
+     */
+    private static final long serialVersionUID = 7984069459706340151L;
 
-	public InsufficientBaselineResultsException(){
-		super();
-	}
+    public InsufficientBaselineResultsException(){
+        super();
+    }
 
-	public InsufficientBaselineResultsException(String message) {
-		super(message);
-	}
-	
-	public InsufficientBaselineResultsException(Throwable cause){
-		super(cause);
-	}
-	
-	public InsufficientBaselineResultsException(String message, Throwable cause){
-		super(message, cause);
-	}
+    public InsufficientBaselineResultsException(String message) {
+        super(message);
+    }
+
+    public InsufficientBaselineResultsException(Throwable cause){
+        super(cause);
+    }
+
+    public InsufficientBaselineResultsException(String message, Throwable cause){
+        super(message, cause);
+    }
 }

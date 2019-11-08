@@ -77,18 +77,18 @@ enum CallTraceErrors {
 };
 
 class Asgct {
- public:
-  static void SetAsgct(ASGCTType asgct) {
-    asgct_ = asgct;
-  }
+  public:
+    static void SetAsgct(ASGCTType asgct) {
+      asgct_ = asgct;
+    }
 
-  // AsyncGetCallTrace function, to be dlsym'd.
-  static ASGCTType GetAsgct() { return asgct_; }
+    // AsyncGetCallTrace function, to be dlsym'd.
+    static ASGCTType GetAsgct() { return asgct_; }
 
- private:
-  static ASGCTType asgct_;
+  private:
+    static ASGCTType asgct_;
 
-  DISALLOW_IMPLICIT_CONSTRUCTORS(Asgct);
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Asgct);
 };
 
 #endif  // STACKTRACES_H
