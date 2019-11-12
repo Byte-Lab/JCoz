@@ -91,5 +91,5 @@ You should now be in a position to profile a real application. Use the JCozCLI
 and capture some samples!
 
 Be aware for that a real sized application there will be lots of code and lots
-of experiments that coz needs to run. You should plan to keep coz running for
+of experiments that JCoz needs to run. You should plan to keep JCoz running for
 some hours to be confident in the results.
