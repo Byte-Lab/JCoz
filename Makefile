@@ -110,7 +110,7 @@ run-workload:
 
 run-rmi-host:
 	java \
-	  -cp ./src/java/target/client-0.0.1-jar-with-dependencies.jar:/usr/lib/jvm/java-8-openjdk-amd64/lib/tools.jar \
+	  -cp $$(readlink -f ./src/java/target/client-*-jar-with-dependencies.jar):$(JAVA_HOME)/lib/tools.jar \
 	  jcoz.service.JCozService
 
 run-profiler:
