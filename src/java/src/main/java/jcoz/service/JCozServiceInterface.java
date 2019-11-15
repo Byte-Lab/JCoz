@@ -31,24 +31,24 @@ import jcoz.JCozVMDescriptor;
  *
  */
 public interface JCozServiceInterface extends Remote{
-	
-	public List<JCozVMDescriptor> getJavaProcessDescriptions() throws RemoteException;
-	
-	public int attachToProcess(int pid) throws RemoteException;
-	
-	public int startProfiling(int pid) throws RemoteException;
-	
-	public int endProfiling(int pid) throws RemoteException;
-	
-	public int setProgressPoint(int pid, String className, int lineNo) throws RemoteException;
-	
-	public int setScope(int pid, String scope) throws RemoteException;
-	
-	public byte[] getProfilerOutput(int pid) throws RemoteException;
-	
-	public String getCurrentScope(int pid) throws RemoteException;
-	
-	public String getProgressPoint(int pid) throws RemoteException;
-	
+
+    public List<JCozVMDescriptor> getJavaProcessDescriptions() throws RemoteException;
+
+    public int attachToProcess(int pid) throws RemoteException;
+
+    public int startProfiling(int pid) throws RemoteException;
+
+    public int endProfiling(int pid) throws RemoteException;
+
+    public int setProgressPoint(int pid, String className, int lineNo) throws RemoteException;
+
+    public int setScope(int pid, String scope) throws RemoteException;
+
+    public byte[] getProfilerOutput(int pid) throws RemoteException;
+
+    public String getCurrentScope(int pid) throws RemoteException;
+
+    public String getProgressPoint(int pid) throws RemoteException;
+
 
 }

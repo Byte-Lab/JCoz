@@ -53,7 +53,7 @@ public class JCozService {
         Registry registry = LocateRegistry.createRegistry(port);
         JCozServiceInterface engine = new JCozServiceImpl();
         JCozServiceInterface stub = (JCozServiceInterface) UnicastRemoteObject
-                .exportObject(engine, 0);
+            .exportObject(engine, 0);
         registry.rebind(SERVICE_NAME, stub);
         // wait forever
         logger.info("Started listening on port {}", port);

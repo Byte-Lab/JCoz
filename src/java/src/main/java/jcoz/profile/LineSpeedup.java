@@ -41,10 +41,10 @@ public class LineSpeedup {
 
     public LineSpeedup(int lineNo, List<Experiment> experiments)
             throws InsufficientBaselineResultsException {
-        this.experiments = new ArrayList<>(experiments);
-        this.lineNo = lineNo;
+            this.experiments = new ArrayList<>(experiments);
+            this.lineNo = lineNo;
 
-        this.updateSpeedupMap();
+            this.updateSpeedupMap();
     }
 
     public LineSpeedup(Experiment exp) {
@@ -147,10 +147,10 @@ public class LineSpeedup {
         StringBuilder output = new StringBuilder();
         for (Map.Entry<Double, Double> entry : speedupMap.entrySet()) {
             output.append("Line speedup: ")
-                    .append(entry.getKey())
-                    .append(", throughput speedup: ")
-                    .append(entry.getValue())
-                    .append("\n");
+                .append(entry.getKey())
+                .append(", throughput speedup: ")
+                .append(entry.getValue())
+                .append("\n");
         }
 
         return output.toString();

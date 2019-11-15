@@ -25,13 +25,13 @@ package jcoz.agent;
  *
  */
 public class JCozProfilingErrorCodes {
-	/*
-	 * error return codes
-	 */
-	public static final int NORMAL_RETURN = 0;
-	public static final int NO_PROGRESS_POINT_SET = 1;
-	public static final int NO_SCOPE_SET = 2;
-	public static final int CANNOT_CALL_WHEN_RUNNING = 3;
-	public static final int PROFILER_NOT_RUNNING = 4;
-	public static final int INVALID_JAVA_PROCESS = 5;
+    /*
+     * error return codes
+     */
+    public static final int NORMAL_RETURN = 0;
+    public static final int NO_PROGRESS_POINT_SET = 1;
+    public static final int NO_SCOPE_SET = 2;
+    public static final int CANNOT_CALL_WHEN_RUNNING = 3;
+    public static final int PROFILER_NOT_RUNNING = 4;
+    public static final int INVALID_JAVA_PROCESS = 5;
 }

@@ -74,7 +74,7 @@ public class Profile {
             StringWriter stringWriter = new StringWriter();
             e.printStackTrace(new PrintWriter(stringWriter));
             logger.error("Unable to flush new experiments to file, stacktrace: {}", stringWriter);
-       }
+        }
     }
 
     /**

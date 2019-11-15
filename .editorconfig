@@ -1,0 +1,17 @@
+root = true
+
+[*]
+# unix style endings
+end_of_line = lf
+insert_final_newline = false
+
+[*.java]
+indent_style = space
+indent_size = 4
+
+[*.{cc,h}]
+indent_style = space
+indent_size = 2
+
+[Makefile]
+indent_style = tab

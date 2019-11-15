@@ -30,18 +30,18 @@ import jcoz.service.JCozException;
  *
  */
 public interface TargetProcessInterface {
-	
-	public void startProfiling() throws JCozException;
-	
-	public void endProfiling() throws JCozException;
-	
-	public void setProgressPoint(String className, int lineNo) throws JCozException;
-	
-	public void setScope(String scope) throws JCozException;
-	
-	public List<Experiment> getProfilerOutput() throws JCozException;
-	
-	public String getCurrentScope() throws JCozException;
-	
-	public String getProgressPoint() throws JCozException;
+
+    public void startProfiling() throws JCozException;
+
+    public void endProfiling() throws JCozException;
+
+    public void setProgressPoint(String className, int lineNo) throws JCozException;
+
+    public void setScope(String scope) throws JCozException;
+
+    public List<Experiment> getProfilerOutput() throws JCozException;
+
+    public String getCurrentScope() throws JCozException;
+
+    public String getProgressPoint() throws JCozException;
 }

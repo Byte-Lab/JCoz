@@ -54,12 +54,12 @@ public class JCozClient {
     private JMXConnector connector;
 
     public JCozClient(VirtualMachineDescriptor vmDesc) throws
-            AttachNotSupportedException,
-            IOException {
-        this.vm = VirtualMachine.attach(vmDesc);
-        this.vm.startLocalManagementAgent();
-        this.connectToProfiler();
-    }
+        AttachNotSupportedException,
+        IOException {
+            this.vm = VirtualMachine.attach(vmDesc);
+            this.vm.startLocalManagementAgent();
+            this.connectToProfiler();
+        }
 
     public void setProgressPoint(String progressPoint, int lineNo) {
         logger.debug("Setting progressPoint {} on line {}", progressPoint, lineNo);

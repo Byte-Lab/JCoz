@@ -28,30 +28,30 @@ import jcoz.agent.JCozProfilingErrorCodes;
  *
  */
 public class JCozExceptionFactory {
-	
-	private JCozExceptionFactory(){
-		
-	}
-	
-	public static final JCozExceptionFactory instance = new JCozExceptionFactory();
-	
-	public static JCozExceptionFactory getInstance(){
-		return instance;
-	}
-	
-	public JCozException getJCozExceptionFromErrorCode(int errorCode){
-		switch(errorCode){
-		case JCozProfilingErrorCodes.NO_PROGRESS_POINT_SET:
-			return new NoProgressPointSetException();
-		case JCozProfilingErrorCodes.NO_SCOPE_SET:
-			return new NoScopeSetException();
-		case JCozProfilingErrorCodes.CANNOT_CALL_WHEN_RUNNING:
-			return new InvalidWhenProfilerRunningException();
-		case JCozProfilingErrorCodes.PROFILER_NOT_RUNNING:
-			return new InvalidWhenProfilerNotRunningException();
-		default:
-			return new JCozException("Unknown Exception occurred: "+errorCode);
-		}
-	}
-	
+
+    private JCozExceptionFactory(){
+
+    }
+
+    public static final JCozExceptionFactory instance = new JCozExceptionFactory();
+
+    public static JCozExceptionFactory getInstance(){
+        return instance;
+    }
+
+    public JCozException getJCozExceptionFromErrorCode(int errorCode){
+        switch(errorCode){
+            case JCozProfilingErrorCodes.NO_PROGRESS_POINT_SET:
+                return new NoProgressPointSetException();
+            case JCozProfilingErrorCodes.NO_SCOPE_SET:
+                return new NoScopeSetException();
+            case JCozProfilingErrorCodes.CANNOT_CALL_WHEN_RUNNING:
+                return new InvalidWhenProfilerRunningException();
+            case JCozProfilingErrorCodes.PROFILER_NOT_RUNNING:
+                return new InvalidWhenProfilerNotRunningException();
+            default:
+                return new JCozException("Unknown Exception occurred: "+errorCode);
+        }
+    }
+
 }

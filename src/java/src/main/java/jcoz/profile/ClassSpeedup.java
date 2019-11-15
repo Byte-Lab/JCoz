@@ -27,31 +27,31 @@ import java.util.List;
 import java.util.Map;
 
 public class ClassSpeedup {
-	private Map<Integer, LineSpeedup> lineSpeedups = new HashMap<>();
-	
-	public ClassSpeedup(Experiment exp) {
-		lineSpeedups.put(exp.getLineNo(), new LineSpeedup(exp));
-	}
+    private Map<Integer, LineSpeedup> lineSpeedups = new HashMap<>();
 
-	public void addExperiment(Experiment exp) {
-		int lineNo = exp.getLineNo();
-		if (!this.lineSpeedups.containsKey(lineNo)) {
-			this.lineSpeedups.put(lineNo, new LineSpeedup(exp));
-		} else {
-			this.lineSpeedups.get(lineNo).addExperiment(exp);
-		}
-	}
+    public ClassSpeedup(Experiment exp) {
+        lineSpeedups.put(exp.getLineNo(), new LineSpeedup(exp));
+    }
 
-	public Collection<? extends Experiment> getExperiments() {
-		List<Experiment> experiments = new ArrayList<>();
-		for (LineSpeedup lineSpeedup : this.lineSpeedups.values()) {
-			experiments.addAll(lineSpeedup.getExperiments());
-		}
-		
-		return experiments;
-	}
+    public void addExperiment(Experiment exp) {
+        int lineNo = exp.getLineNo();
+        if (!this.lineSpeedups.containsKey(lineNo)) {
+            this.lineSpeedups.put(lineNo, new LineSpeedup(exp));
+        } else {
+            this.lineSpeedups.get(lineNo).addExperiment(exp);
+        }
+    }
 
-	public Collection<LineSpeedup> getLineSpeedups() {
-		return this.lineSpeedups.values();
-	}
+    public Collection<? extends Experiment> getExperiments() {
+        List<Experiment> experiments = new ArrayList<>();
+        for (LineSpeedup lineSpeedup : this.lineSpeedups.values()) {
+            experiments.addAll(lineSpeedup.getExperiments());
+        }
+
+        return experiments;
+    }
+
+    public Collection<LineSpeedup> getLineSpeedups() {
+        return this.lineSpeedups.values();
+    }
 }

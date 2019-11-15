@@ -38,30 +38,30 @@ using std::string;
 #endif
 
 class StackTracesPrinter {
- public:
-  StackTracesPrinter(FILE *file, jvmtiEnv *jvmti)
+  public:
+    StackTracesPrinter(FILE *file, jvmtiEnv *jvmti)
       : file_(file), jvmti_(jvmti) {}
 
-  void PrintStackTraces(TraceData *traces, int length);
+    void PrintStackTraces(TraceData *traces, int length);
 
-  void PrintLeafHistogram(TraceData *traces, int length);
+    void PrintLeafHistogram(TraceData *traces, int length);
 
- private:
-  FILE *file_;
+  private:
+    FILE *file_;
 
-  jvmtiEnv *jvmti_;
+    jvmtiEnv *jvmti_;
 
-  bool PrintStackFrame(JVMPI_CallFrame *frame);
+    bool PrintStackFrame(JVMPI_CallFrame *frame);
 
-  void PrintStackTrace(TraceData *trace);
+    void PrintStackTrace(TraceData *trace);
 
-  bool GetStackFrameElements(JVMPI_CallFrame *frame, string *method_name,
-                             string *class_name, string *file_name,
-                             int *line_number);
+    bool GetStackFrameElements(JVMPI_CallFrame *frame, string *method_name,
+        string *class_name, string *file_name,
+        int *line_number);
 
-  jint GetLineNumber(jmethodID method, jlocation location);
+    jint GetLineNumber(jmethodID method, jlocation location);
 
-  DISALLOW_COPY_AND_ASSIGN(StackTracesPrinter);
+    DISALLOW_COPY_AND_ASSIGN(StackTracesPrinter);
 };
 
 #endif  // DISPLAY_H

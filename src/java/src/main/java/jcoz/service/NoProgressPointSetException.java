@@ -25,24 +25,24 @@ package jcoz.service;
  *
  */
 public class NoProgressPointSetException extends JCozException {
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -1481974055571289571L;
+    /**
+     * 
+     */
+    private static final long serialVersionUID = -1481974055571289571L;
 
-	public NoProgressPointSetException(){
-		super();
-	}
+    public NoProgressPointSetException(){
+        super();
+    }
 
-	public NoProgressPointSetException(String message) {
-		super(message);
-	}
-	
-	public NoProgressPointSetException(Throwable cause){
-		super(cause);
-	}
-	
-	public NoProgressPointSetException(String message, Throwable cause){
-		super(message, cause);
-	}
+    public NoProgressPointSetException(String message) {
+        super(message);
+    }
+
+    public NoProgressPointSetException(Throwable cause){
+        super(cause);
+    }
+
+    public NoProgressPointSetException(String message, Throwable cause){
+        super(message, cause);
+    }
 }

@@ -37,19 +37,19 @@ static volatile int class_prep_lock = 0;
 static bool acquireCreateLock(); static void releaseCreateLock();
 
 void JNICALL OnThreadStart(jvmtiEnv *jvmti_env, JNIEnv *jni_env,
-                           jthread thread) {
-    auto logger = prof->getLogger();
-    logger->info("OnThreadStart fired");
-    IMPLICITLY_USE(jvmti_env);
-    IMPLICITLY_USE(thread);
-    Accessors::SetCurrentJniEnv(jni_env);
+    jthread thread) {
+  auto logger = prof->getLogger();
+  logger->info("OnThreadStart fired");
+  IMPLICITLY_USE(jvmti_env);
+  IMPLICITLY_USE(thread);
+  Accessors::SetCurrentJniEnv(jni_env);
 
-    prof->addUserThread(thread);
+  prof->addUserThread(thread);
 }
 
 void JNICALL OnThreadEnd(jvmtiEnv *jvmti_env, JNIEnv *jni_env, jthread thread) {
-    auto logger = prof->getLogger();
-    logger->info("OnThreadEnd fired");
+  auto logger = prof->getLogger();
+  logger->info("OnThreadEnd fired");
   IMPLICITLY_USE(jvmti_env);
   IMPLICITLY_USE(jni_env);
   IMPLICITLY_USE(thread);
@@ -60,7 +60,7 @@ void JNICALL OnThreadEnd(jvmtiEnv *jvmti_env, JNIEnv *jni_env, jthread thread) {
 // This has to be here, or the VM turns off class loading events.
 // And AsyncGetCallTrace needs class loading events to be turned on!
 void JNICALL OnClassLoad(jvmtiEnv *jvmti_env, JNIEnv *jni_env, jthread thread,
-                         jclass klass) {
+    jclass klass) {
 
   IMPLICITLY_USE(jvmti_env);
   IMPLICITLY_USE(jni_env);
@@ -71,22 +71,22 @@ void JNICALL OnClassLoad(jvmtiEnv *jvmti_env, JNIEnv *jni_env, jthread thread,
 // Create a java thread -- currently used
 // to run profiler thread
 jthread create_thread(JNIEnv *jni_env) {
-    auto logger = prof->getLogger();
-    logger->info("Creating a thread in create_thread");
-    jclass cls = jni_env->FindClass("java/lang/Thread");
-    if( cls == NULL ) {
-        exit(1);
-    }
-    const char *method = "<init>";
-    jmethodID methodId = jni_env->GetMethodID(cls, method, "()V");
+  auto logger = prof->getLogger();
+  logger->info("Creating a thread in create_thread");
+  jclass cls = jni_env->FindClass("java/lang/Thread");
+  if( cls == NULL ) {
+    exit(1);
+  }
+  const char *method = "<init>";
+  jmethodID methodId = jni_env->GetMethodID(cls, method, "()V");
 
-    if( methodId == NULL ) {
-        exit(1);
-    }
+  if( methodId == NULL ) {
+    exit(1);
+  }
 
-    jobject ret = jni_env->NewObject(cls, methodId);
+  jobject ret = jni_env->NewObject(cls, methodId);
 
-    return (jthread)ret;
+  return (jthread)ret;
 }
 
 /**
@@ -95,11 +95,11 @@ jthread create_thread(JNIEnv *jni_env) {
  * are called.
  */
 static bool updateEventsEnabledState(jvmtiEnv *jvmti, jvmtiEventMode enabledState) {
-    auto logger = prof->getLogger();
-    logger->info("Setting CLASS_PREPARE to enabled");
+  auto logger = prof->getLogger();
+  logger->info("Setting CLASS_PREPARE to enabled");
   JVMTI_ERROR_1(
-    (jvmti->SetEventNotificationMode(enabledState, JVMTI_EVENT_CLASS_PREPARE, NULL)),
-    false);
+      (jvmti->SetEventNotificationMode(enabledState, JVMTI_EVENT_CLASS_PREPARE, NULL)),
+      false);
 
   return true;
 }
@@ -107,17 +107,17 @@ static bool updateEventsEnabledState(jvmtiEnv *jvmti, jvmtiEventMode enabledStat
 static bool acquireCreateLock() {
   bool has_lock = class_prep_lock == pthread_self();
   if (!has_lock) {
-  	while (!__sync_bool_compare_and_swap(&class_prep_lock, 0, pthread_self()))
-			;
+    while (!__sync_bool_compare_and_swap(&class_prep_lock, 0, pthread_self()))
+      ;
 
-		std::atomic_thread_fence(std::memory_order_acquire);
+    std::atomic_thread_fence(std::memory_order_acquire);
   }
-	
+
   return !has_lock;
 }
 
 static void releaseCreateLock() {
-	class_prep_lock = 0;
+  class_prep_lock = 0;
   std::atomic_thread_fence(std::memory_order_release);
 }
 
@@ -126,7 +126,7 @@ static void releaseCreateLock() {
 // jmethodIDs of it.
 void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
   if (!prof->isRunning()){
-		return;
+    return;
   }
   auto logger = prof->getLogger();
   logger->info("In CreateJMethodIDsForClass start");
@@ -140,24 +140,24 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
     JVMTI_ERROR((jvmti->GetClassSignature(klass, ksig.GetRef(), NULL)));
     logger->error("Failed to create method IDs for methods in class {} with error {}", ksig.Get(), e);
   } else {
-      JvmtiScopedPtr<char> ksig(jvmti);
-      jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
+    JvmtiScopedPtr<char> ksig(jvmti);
+    jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
 
-      std::string package_str = "L" + prof->getPackage();
-      logger->info(
-          "Creating JMethod IDs. [Class: {class}] [Scope: {scope}]",
-          fmt::arg("class", ksig.Get()), fmt::arg("scope", package_str));
-      if( strstr(ksig.Get(), package_str.c_str()) == ksig.Get() ) {
-          prof->addInScopeMethods(method_count, methods.Get());
+    std::string package_str = "L" + prof->getPackage();
+    logger->info(
+        "Creating JMethod IDs. [Class: {class}] [Scope: {scope}]",
+        fmt::arg("class", ksig.Get()), fmt::arg("scope", package_str));
+    if( strstr(ksig.Get(), package_str.c_str()) == ksig.Get() ) {
+      prof->addInScopeMethods(method_count, methods.Get());
 
-      }
+    }
 
-      //TODO: this matches a prefix. class name AA will match a progress
-      // point set with class A
-      std::string progress_pt_str = "L" + prof->getProgressClass();
-      if( strstr(ksig.Get(), progress_pt_str.c_str()) == ksig.Get() ) {
-          prof->addProgressPoint(method_count, methods.Get());
-      }
+    //TODO: this matches a prefix. class name AA will match a progress
+    // point set with class A
+    std::string progress_pt_str = "L" + prof->getProgressClass();
+    if( strstr(ksig.Get(), progress_pt_str.c_str()) == ksig.Get() ) {
+      prof->addProgressPoint(method_count, methods.Get());
+    }
   }
   if (releaseLock) {
     releaseCreateLock();
@@ -165,41 +165,41 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
 }
 
 jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
-   auto logger = prof->getLogger();
-   logger->info("startProfilingNative called");
-   // Forces the creation of jmethodIDs of the classes that had already
-   // been loaded (eg java.lang.Object, java.lang.ClassLoader) and
-   // OnClassPrepare() misses.
-   jvmtiEnv * jvmti = prof->getJVMTI();
-   jint class_count;
-   JvmtiScopedPtr<jclass> classes(jvmti);
-   prof->setJNI(env);
-   prof->setMBeanObject(thisObj);
-   prof->Start();
-   updateEventsEnabledState(jvmti, JVMTI_ENABLE);
-   jvmti->GetLoadedClasses(&class_count, classes.GetRef());
-   jclass *classList = classes.Get();
-   for (int i = 0; i < class_count; ++i) {
-      jclass klass = classList[i];
-      JvmtiScopedPtr<char> ksig(jvmti);
-      jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
-      logger->info("Loading class {}", ksig.Get());
-      CreateJMethodIDsForClass(jvmti, klass);
-   }
+  auto logger = prof->getLogger();
+  logger->info("startProfilingNative called");
+  // Forces the creation of jmethodIDs of the classes that had already
+  // been loaded (eg java.lang.Object, java.lang.ClassLoader) and
+  // OnClassPrepare() misses.
+  jvmtiEnv * jvmti = prof->getJVMTI();
+  jint class_count;
+  JvmtiScopedPtr<jclass> classes(jvmti);
+  prof->setJNI(env);
+  prof->setMBeanObject(thisObj);
+  prof->Start();
+  updateEventsEnabledState(jvmti, JVMTI_ENABLE);
+  jvmti->GetLoadedClasses(&class_count, classes.GetRef());
+  jclass *classList = classes.Get();
+  for (int i = 0; i < class_count; ++i) {
+    jclass klass = classList[i];
+    JvmtiScopedPtr<char> ksig(jvmti);
+    jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
+    logger->info("Loading class {}", ksig.Get());
+    CreateJMethodIDsForClass(jvmti, klass);
+  }
 
-   jthread agent_thread = create_thread(env);
-   jvmtiError agentErr = jvmti->RunAgentThread(agent_thread, &Profiler::runAgentThread, NULL, 1);
-   return 0;
+  jthread agent_thread = create_thread(env);
+  jvmtiError agentErr = jvmti->RunAgentThread(agent_thread, &Profiler::runAgentThread, NULL, 1);
+  return 0;
 }
 
 jint JNICALL endProfilingNative(JNIEnv *env, jobject thisObj) {
-   auto logger = prof->getLogger();
-   logger->info("endProfilingNative called");
-   prof->Stop();
-   updateEventsEnabledState(prof->getJVMTI(), JVMTI_DISABLE);
-   prof->clearMBeanObject();
-   prof->clearProgressPoint();
-   return 0;
+  auto logger = prof->getLogger();
+  logger->info("endProfilingNative called");
+  prof->Stop();
+  updateEventsEnabledState(prof->getJVMTI(), JVMTI_DISABLE);
+  prof->clearMBeanObject();
+  prof->clearProgressPoint();
+  return 0;
 }
 
 jint JNICALL setProgressPointNative(JNIEnv *env, jobject thisObj, jstring className, jint line_no) {
@@ -209,7 +209,7 @@ jint JNICALL setProgressPointNative(JNIEnv *env, jobject thisObj, jstring classN
   prof->setProgressPoint(nativeClassName, line_no);
 
 
-   // use your string
+  // use your string
   env->ReleaseStringUTFChars(className, nativeClassName);
   return 0;
 }
@@ -237,25 +237,25 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
   logger->info("Trying to find JCozProfiler class");
   jclass cls = jni_env->FindClass("jcoz/agent/JCozProfiler");
   if (cls == nullptr){
-      logger->error("Could not find JCoz Profiler class, did you add the jar to the classpath?");
-      fprintf(stderr, "Could not find JCoz Profiler class, did you add the jar to the classpath?\n");
-      exit(-1);
+    logger->error("Could not find JCoz Profiler class, did you add the jar to the classpath?");
+    fprintf(stderr, "Could not find JCoz Profiler class, did you add the jar to the classpath?\n");
+    exit(-1);
   }
   logger->info("Found JCozProfiler class. Trying to find register profiler method.");
   jmethodID mid = jni_env->GetStaticMethodID(cls, "registerProfilerWithMBeanServer", "()V");
   if (mid == nullptr){
-      logger->error("Could not find static method to register the mbean.");
-      fprintf(stderr, "Could not find static method to register the mbean.\n");
-      exit(-1);
+    logger->error("Could not find static method to register the mbean.");
+    fprintf(stderr, "Could not find static method to register the mbean.\n");
+    exit(-1);
   }
   logger->info("Successfully found JCoz Profiler class and static methodc to register mbean.");
 
   JNINativeMethod methods[] = {
-       {(char *)"startProfilingNative",   (char *)"()I",                     (void *)&startProfilingNative},
-       {(char *)"endProfilingNative",     (char *)"()I",                     (void *)&endProfilingNative},
-       {(char *)"setProgressPointNative", (char *)"(Ljava/lang/String;I)I",  (void *)&setProgressPointNative},
-       {(char *)"setScopeNative",         (char *)"(Ljava/lang/String;)I",   (void *)&setScopeNative},
-   };
+    {(char *)"startProfilingNative",   (char *)"()I",                     (void *)&startProfilingNative},
+    {(char *)"endProfilingNative",     (char *)"()I",                     (void *)&endProfilingNative},
+    {(char *)"setProgressPointNative", (char *)"(Ljava/lang/String;I)I",  (void *)&setProgressPointNative},
+    {(char *)"setScopeNative",         (char *)"(Ljava/lang/String;)I",   (void *)&setScopeNative},
+  };
 
   jint err;
   logger->info("Registering native methods..");
@@ -270,7 +270,7 @@ void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
 }
 
 void JNICALL OnClassPrepare(jvmtiEnv *jvmti_env, JNIEnv *jni_env,
-                            jthread thread, jclass klass) {
+    jthread thread, jclass klass) {
   IMPLICITLY_USE(jni_env);
   IMPLICITLY_USE(thread);
   // We need to do this to "prime the pump", as it were -- make sure
@@ -284,7 +284,7 @@ void JNICALL OnVMDeath(jvmtiEnv *jvmti_env, JNIEnv *jni_env) {
   IMPLICITLY_USE(jvmti_env);
   IMPLICITLY_USE(jni_env);
 
-//  prof->printInScopeLineNumberMapping();
+  //  prof->printInScopeLineNumberMapping();
 
   // prof->clearProgressPoint();
   prof->Stop();
@@ -355,8 +355,8 @@ static bool RegisterJvmti(jvmtiEnv *jvmti) {
       false);
 
   jvmtiEvent events[] = {JVMTI_EVENT_CLASS_LOAD, JVMTI_EVENT_BREAKPOINT,
-                         JVMTI_EVENT_THREAD_END, JVMTI_EVENT_THREAD_START,
-                         JVMTI_EVENT_VM_DEATH, JVMTI_EVENT_VM_INIT};
+    JVMTI_EVENT_THREAD_END, JVMTI_EVENT_THREAD_START,
+    JVMTI_EVENT_VM_DEATH, JVMTI_EVENT_VM_INIT};
 
   size_t num_events = sizeof(events) / sizeof(jvmtiEvent);
 
@@ -401,7 +401,7 @@ static void SetFileFromOption(char *equals) {
 }
 
 AGENTEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options,
-                                      void *reserved) {
+    void *reserved) {
   IMPLICITLY_USE(reserved);
   int err;
   jvmtiEnv *jvmti;

@@ -25,25 +25,25 @@ package jcoz.service;
  *
  */
 public class JCozException extends Exception{
-	/**
-	 * serialVersionUID
-	 */
-	private static final long serialVersionUID = -7912298271464056903L;
+    /**
+     * serialVersionUID
+     */
+    private static final long serialVersionUID = -7912298271464056903L;
 
-	public JCozException(){
-		super();
-	}
+    public JCozException(){
+        super();
+    }
 
-	public JCozException(String message) {
-		super(message);
-	}
-	
-	public JCozException(Throwable cause){
-		super(cause);
-	}
-	
-	public JCozException(String message, Throwable cause){
-		super(message, cause);
-	}
+    public JCozException(String message) {
+        super(message);
+    }
+
+    public JCozException(Throwable cause){
+        super(cause);
+    }
+
+    public JCozException(String message, Throwable cause){
+        super(message, cause);
+    }
 
 }
