@@ -33,7 +33,11 @@
 static Profiler *prof;
 FILE *Globals::OutFile;
 static bool updateEventsEnabledState(jvmtiEnv *jvmti, jvmtiEventMode enabledState);
+#ifdef __APPLE__
+static volatile pthread_t class_prep_lock = 0;
+#else
 static volatile int class_prep_lock = 0;
+#endif
 static bool acquireCreateLock(); static void releaseCreateLock();
 
 void JNICALL OnThreadStart(jvmtiEnv *jvmti_env, JNIEnv *jni_env,
