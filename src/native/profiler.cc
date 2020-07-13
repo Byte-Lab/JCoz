@@ -55,6 +55,7 @@ __thread JNIEnv * Accessors::env_;
 #define MIN_EXP_TIME 5000
 
 #define NUM_CALL_FRAMES 200
+#define MAX_BCI 65536
 
 typedef std::chrono::duration<int, std::milli> milliseconds_type;
 typedef std::chrono::duration<long, std::nano> nanoseconds_type;
@@ -430,7 +431,7 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
           } else {
             location_ranges.push_back(
                 std::pair<jint, jint>(entries[i].start_location,
-                  LONG_MAX));
+                  MAX_BCI));
           }
         }
       }
