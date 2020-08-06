@@ -36,6 +36,8 @@ static bool updateEventsEnabledState(jvmtiEnv *jvmti, jvmtiEventMode enabledStat
 static volatile int class_prep_lock = 0;
 static bool acquireCreateLock(); static void releaseCreateLock();
 
+jvmtiError run_profiler(JNIEnv* jni);
+
 void JNICALL OnThreadStart(jvmtiEnv *jvmti_env, JNIEnv *jni_env,
     jthread thread) {
   auto logger = prof->getLogger();
@@ -164,109 +166,12 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
   }
 }
 
-jint JNICALL startProfilingNative(JNIEnv *env, jobject thisObj) {
-  auto logger = prof->getLogger();
-  logger->info("startProfilingNative called");
-  // Forces the creation of jmethodIDs of the classes that had already
-  // been loaded (eg java.lang.Object, java.lang.ClassLoader) and
-  // OnClassPrepare() misses.
-  jvmtiEnv * jvmti = prof->getJVMTI();
-  jint class_count;
-  JvmtiScopedPtr<jclass> classes(jvmti);
-  prof->setJNI(env);
-  prof->setMBeanObject(thisObj);
-  prof->Start();
-  updateEventsEnabledState(jvmti, JVMTI_ENABLE);
-  jvmti->GetLoadedClasses(&class_count, classes.GetRef());
-  jclass *classList = classes.Get();
-  for (int i = 0; i < class_count; ++i) {
-    jclass klass = classList[i];
-    JvmtiScopedPtr<char> ksig(jvmti);
-    jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
-    logger->info("Loading class {}", ksig.Get());
-    CreateJMethodIDsForClass(jvmti, klass);
-  }
-
-  jthread agent_thread = create_thread(env);
-  jvmtiError agentErr = jvmti->RunAgentThread(agent_thread, &Profiler::runAgentThread, NULL, 1);
-  return 0;
-}
-
-jint JNICALL endProfilingNative(JNIEnv *env, jobject thisObj) {
-  auto logger = prof->getLogger();
-  logger->info("endProfilingNative called");
-  prof->Stop();
-  updateEventsEnabledState(prof->getJVMTI(), JVMTI_DISABLE);
-  prof->clearMBeanObject();
-  prof->clearProgressPoint();
-  return 0;
-}
-
-jint JNICALL setProgressPointNative(JNIEnv *env, jobject thisObj, jstring className, jint line_no) {
-  const char *nativeClassName = env->GetStringUTFChars(className, 0);
-  auto logger = prof->getLogger();
-  logger->info("Setting Progress point: {}:{}", nativeClassName, line_no);
-  prof->setProgressPoint(nativeClassName, line_no);
-
-
-  // use your string
-  env->ReleaseStringUTFChars(className, nativeClassName);
-  return 0;
-}
-
-jint JNICALL setScopeNative(JNIEnv *env, jobject thisObj, jstring scope) {
-  const char *nativeScope = env->GetStringUTFChars(scope, 0);
-  auto logger = prof->getLogger();
-
-  prof->setScope(nativeScope);
-  logger->info("Setting scope {}", nativeScope);
-  env->ReleaseStringUTFChars(scope, nativeScope);
-  return 0;
-}
-
-
-
 void JNICALL OnVMInit(jvmtiEnv *jvmti, JNIEnv *jni_env, jthread thread) {
+  IMPLICITLY_USE(jvmti);
   IMPLICITLY_USE(thread);
   IMPLICITLY_USE(jni_env);
 
-
-  // register mbean
-
-  auto logger = prof->getLogger();
-  logger->info("Trying to find JCozProfiler class");
-  jclass cls = jni_env->FindClass("jcoz/agent/JCozProfiler");
-  if (cls == nullptr){
-    logger->error("Could not find JCoz Profiler class, did you add the jar to the classpath?");
-    fprintf(stderr, "Could not find JCoz Profiler class, did you add the jar to the classpath?\n");
-    exit(-1);
-  }
-  logger->info("Found JCozProfiler class. Trying to find register profiler method.");
-  jmethodID mid = jni_env->GetStaticMethodID(cls, "registerProfilerWithMBeanServer", "()V");
-  if (mid == nullptr){
-    logger->error("Could not find static method to register the mbean.");
-    fprintf(stderr, "Could not find static method to register the mbean.\n");
-    exit(-1);
-  }
-  logger->info("Successfully found JCoz Profiler class and static methodc to register mbean.");
-
-  JNINativeMethod methods[] = {
-    {(char *)"startProfilingNative",   (char *)"()I",                     (void *)&startProfilingNative},
-    {(char *)"endProfilingNative",     (char *)"()I",                     (void *)&endProfilingNative},
-    {(char *)"setProgressPointNative", (char *)"(Ljava/lang/String;I)I",  (void *)&setProgressPointNative},
-    {(char *)"setScopeNative",         (char *)"(Ljava/lang/String;)I",   (void *)&setScopeNative},
-  };
-
-  jint err;
-  logger->info("Registering native methods..");
-  err = jni_env->RegisterNatives(cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
-  if (err != JVMTI_ERROR_NONE){
-    fprintf(stderr, "Could not register natives with error %d\n", err);
-    return;
-  }
-  logger->info("Registered native methods. Registering profiler with MBean server...");
-  jni_env->CallStaticVoidMethod(cls, mid);
-  logger->info("Registered profiler with MBean server...");
+  run_profiler(jni_env);
 }
 
 void JNICALL OnClassPrepare(jvmtiEnv *jvmti_env, JNIEnv *jni_env,
@@ -287,8 +192,10 @@ void JNICALL OnVMDeath(jvmtiEnv *jvmti_env, JNIEnv *jni_env) {
   //  prof->printInScopeLineNumberMapping();
 
   // prof->clearProgressPoint();
+  prof->getLogger()->info("On VM death. Stopping profiler...");
   prof->Stop();
-
+  updateEventsEnabledState(prof->getJVMTI(), JVMTI_DISABLE);
+  Profiler::clearProgressPoint();
 }
 
 static bool PrepareJvmti(jvmtiEnv *jvmti) {
@@ -428,16 +335,38 @@ AGENTEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options,
   Asgct::SetAsgct(Accessors::GetJvmFunction<ASGCTType>("AsyncGetCallTrace"));
 
   prof = new Profiler(jvmti);
-  auto logger = prof->getLogger();
-
+  prof->ParseOptions(options);
   prof->setJVMTI(jvmti);
-  prof->init();
-
-  logger->info("Successfully loaded agent.");
+  prof->getLogger()->info("Successfully loaded agent.");
   return 0;
 }
 
 AGENTEXPORT void JNICALL Agent_OnUnload(JavaVM *vm) {
   IMPLICITLY_USE(vm);
   Accessors::Destroy();
+}
+
+jvmtiError run_profiler(JNIEnv* jni)
+{
+  jvmtiEnv* jvmti = prof->getJVMTI();
+
+  jint loaded_classes_count;
+  JvmtiScopedPtr<jclass> loaded_classes_ptr(jvmti);
+  prof->Start();
+
+  updateEventsEnabledState(jvmti, JVMTI_ENABLE);
+  jvmti->GetLoadedClasses(&loaded_classes_count, loaded_classes_ptr.GetRef());
+  jclass* loaded_classes = loaded_classes_ptr.Get();
+  for (int i = 0; i < loaded_classes_count; ++i)
+  {
+    jclass next_loaded_class = loaded_classes[i];
+    JvmtiScopedPtr<char> ksig(jvmti);
+    jvmti->GetClassSignature(next_loaded_class, ksig.GetRef(), nullptr);
+    prof->getLogger()->info("Loading class {}", ksig.Get());
+    CreateJMethodIDsForClass(jvmti, next_loaded_class);
+  }
+
+  jthread agent_thread = create_thread(jni);
+  jvmtiError agent_error = jvmti->RunAgentThread(agent_thread, &Profiler::runAgentThread, nullptr, 1);
+  return agent_error;
 }
