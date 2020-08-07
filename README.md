@@ -11,7 +11,7 @@ For documentation, including installing, building, and using JCoz, please see ou
    - `apt-get install libspdlog-dev` for debian/ubuntu
    - `yum install spdlog-devel` for fedora/rhel/centos
  - make
- - jdk, of course
+ - jdk 1.8 (newer jdk's will result in a (maven) failure during make all)
 
 # Getting Started Tutorial
 
@@ -81,7 +81,7 @@ Results will start appearing in the profile output.
 
 ## Getting a profiling visualisation
 
-Save the results you previously captured to a file `foo.coz`.
+Save the results you previously captured to a file `foo.coz` (you will have to manually remove "[main] INFO jcoz.client.cli.JCozCLI - Experiment: " from the console output to make the coz UI parse your input).
 
 Open the [coz UI here](https://plasma-umass.org/coz/), and upload the file and review the output.
 
