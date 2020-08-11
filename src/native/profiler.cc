@@ -55,7 +55,9 @@ __thread JNIEnv * Accessors::env_;
 #define MIN_EXP_TIME 5000
 
 #define NUM_CALL_FRAMES 200
-#define MAX_BCI 65536
+
+// Maximum possible bytecode index (JVMS14, 4.7.3)
+#define MAX_BCI 65535
 
 typedef std::chrono::duration<int, std::milli> milliseconds_type;
 typedef std::chrono::duration<long, std::nano> nanoseconds_type;
@@ -403,27 +405,17 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
       current_experiment.bci = exp_frame.lineno;
       jint start_line;
       jint end_line; //exclusive
-      jint line = -1;
       std::vector<std::pair<jint, jint>> location_ranges;
 
-      bool select_last_line = true;
-      for (int i = 1; i < num_entries; i++) {
-        if (line == -1
-            && entries[i].start_location > exp_frame.lineno) {
-          line = entries[i - 1].line_number;
-          current_experiment.lineno = line;
-          select_last_line = false;
+      for (int i = 1; i <= num_entries; i++) {
+        if (i == num_entries || entries[i].start_location > exp_frame.lineno) {
+          current_experiment.lineno = entries[i - 1].line_number;
           break;
         }
       }
 
-      if (select_last_line && num_entries > 0) {
-        line = entries[num_entries - 1].line_number;
-        current_experiment.lineno = line;
-      }
-
       for (int i = 0; i < num_entries; i++) {
-        if (entries[i].line_number == line) {
+        if (entries[i].line_number == current_experiment.lineno) {
           if (i < num_entries - 1) {
             location_ranges.push_back(
                 std::pair<jint, jint>(entries[i].start_location,
@@ -431,7 +423,7 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
           } else {
             location_ranges.push_back(
                 std::pair<jint, jint>(entries[i].start_location,
-                  MAX_BCI));
+                  MAX_BCI + 1));
           }
         }
       }
