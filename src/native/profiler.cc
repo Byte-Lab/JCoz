@@ -42,6 +42,7 @@
 
 #include "display.h"
 #include "globals.h"
+#include "bci_hits.h"
 
 #ifdef __APPLE__
 // See comment in Accessors class
@@ -91,8 +92,6 @@ bool Profiler::prof_ready = false;
 std::string Profiler::package;
 struct ProgressPoint* Profiler::progress_point = nullptr;
 std::string Profiler::progress_class;
-std::map<jmethodID, std::map<jint, bci_hits::hit_freq_t>> bci_hits::_freqs;
-std::map<jmethodID, char*> bci_hits::_declaring_classes;
 
 static std::atomic<int> call_index(0);
 static JVMPI_CallFrame static_call_frames[NUM_CALL_FRAMES];
@@ -849,7 +848,7 @@ void Profiler::Stop() {
     logger->info("Profiler finished current cycle...");
   }
 
-  std::vector<std::string> hits = bci_hits::create_dump();
+  std::vector<std::string> hits = bci_hits::create_dump(jvmti);
   for (std::string& hit : hits) {
       logger->info("{}", hit);
   }
@@ -872,35 +871,3 @@ Profiler::HandleBreakpoint(
     ) {
   curr_ut->points_hit += in_experiment;
 }
-
-void bci_hits::add_hit(char* class_fqn, jmethodID method_id, jint line_number, jint bci)
-{
-    _freqs[method_id][line_number][bci]++;
-    _declaring_classes[method_id] = class_fqn;
-}
-
-std::vector<std::string> bci_hits::create_dump()
-{
-    std::vector<std::string> result;
-    result.emplace_back("Bytecode index hits:");
-    for (auto method_it = _freqs.begin(); method_it != _freqs.end(); ++method_it)
-    {
-        char* class_fqn = _declaring_classes[method_it->first];
-        result.emplace_back(fmt::format("\tFor class {}:", class_fqn));
-        for (auto line_it = method_it->second.begin(); line_it != method_it->second.end(); ++line_it)
-        {
-            jint line_number = line_it->first;
-            std::stringstream ss;
-            ss << "\t\t" << line_number << ": ";
-            for (auto bci_it = line_it->second.begin(); bci_it != line_it->second.end(); ++bci_it)
-            {
-                ss << fmt::format("({}, {}); ", bci_it->first, bci_it->second);
-            }
-            result.emplace_back(ss.str());
-        }
-        free(class_fqn);
-    }
-    return result;
-}
-
-
