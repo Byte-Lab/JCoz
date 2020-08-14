@@ -165,7 +165,7 @@ class Profiler {
     static bool inline frameInScope(JVMPI_CallFrame &curr_frame);
     DISALLOW_COPY_AND_ASSIGN(Profiler);
 
-    static void prepareScope(std::string &scope);
+    static void prepare_scope(std::string &scope);
 
     static jobject mbean;
 
@@ -214,8 +214,6 @@ class Profiler {
     static void cleanSignature(char *sig);
 
     static std::string package;
-
-    static void print_usage();
 
     static struct ProgressPoint *progress_point;
 

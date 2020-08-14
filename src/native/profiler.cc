@@ -43,6 +43,7 @@
 #include "display.h"
 #include "globals.h"
 #include "bci_hits.h"
+#include "args.h"
 
 #ifdef __APPLE__
 // See comment in Accessors class
@@ -106,14 +107,17 @@ nanoseconds_type startup_time;
 // Logger
 std::shared_ptr<spdlog::logger> Profiler::logger = spdlog::basic_logger_mt("basic_logger", "log.txt");
 
-void Profiler::ParseOptions(const char *options) {
-  if (options == NULL) {
-    fprintf(stderr, "Missing options\n");
-    print_usage();
-    exit(1);
-  } else {
+void Profiler::ParseOptions(const char *options)
+{
+  if (options == NULL)
+  {
+    agent_args::report_error("Missing options");
+  }
+  else
+  {
     logger->info("Received options: {}", options);
   }
+
   std::string options_str(options);
   std::stringstream ss(options_str);
   std::string item;
@@ -128,45 +132,61 @@ void Profiler::ParseOptions(const char *options) {
     cmd_line_options.push_back(item);
   }
 
-  for (auto i = cmd_line_options.begin(); i != cmd_line_options.end(); i++) {
+  for (auto i = cmd_line_options.begin(); i != cmd_line_options.end(); i++)
+  {
     size_t equal_index = i->find('=');
     std::string option = i->substr(0, equal_index);
     std::string value = i->substr(equal_index + 1);
 
-    // extract package
-    if (option == "pkg" || option == "package") {
-      Profiler::package = value;
-      prepareScope(Profiler::package);
-    } else if (option == "progress-point") {
+    switch (agent_args::from_string(option))
+    {
+      case _unknown:
+        agent_args::report_error(fmt::format("Unknown option: {}", option).c_str());
+        break;
 
-      // else extract progress point
-      size_t colon_index = value.find(':');
-      if (colon_index == std::string::npos) {
-          fprintf(stderr, "Missing progress point\n");
-          print_usage();
-          exit(1);
+      case _package:
+        Profiler::package = value;
+        prepare_scope(Profiler::package);
+        break;
+
+      case _progress_point:
+      {
+        size_t colon_index = value.find(':');
+        if (colon_index == std::string::npos)
+          agent_args::report_error("Missing progress point");
+
+        Profiler::progress_class = value.substr(0, colon_index);
+        progress_point->lineno = std::stoi(value.substr(colon_index + 1));
+        break;
       }
 
-      Profiler::progress_class = value.substr(0, colon_index);
-      progress_point->lineno = std::stoi(value.substr(colon_index + 1));
+      case _end_to_end:
+        end_to_end = true;
+        break;
 
-    } else if (option == "end-to-end") {
-      end_to_end = true;
-    } else if (option == "warmup") {
-      // We expect # of milliseconds so multiply by 1000 for usleep (takes microseconds)
-      warmup_time = std::stol(value) * 1000;
-    } else if (option == "fix-exp") {
-      fix_exp = true;
+      case _warmup:
+        // We expect # of milliseconds so multiply by 1000 for usleep (takes microseconds)
+        warmup_time = std::stol(value) * 1000;
+        break;
+
+      case _fix_exp:
+        fix_exp = true;
+        break;
     }
   }
 
   logger->info(
-          "Profiler arguments:\n\tprogress point: {}:{}\n\tscope: {}\n\twarmup: {}us\n\tend-to-end: {}\n\tfixed experiment duration: {}",
+          "Profiler arguments:\n"
+          "\tprogress point: {}:{}\n"
+          "\tscope: {}\n"
+          "\twarmup: {}us\n"
+          "\tend-to-end: {}\n"
+          "\texperiment duration: {}",
           progress_class, progress_point->lineno, Profiler::package, warmup_time, end_to_end, fix_exp);
-  if (Profiler::package.empty() || (!end_to_end && (progress_class.empty() || progress_point->lineno == -1))) {
-    fprintf(stderr, "Missing package, progress class, or progress point\n");
-    print_usage();
-    exit(1);
+
+  if (Profiler::package.empty() || (!end_to_end && (progress_class.empty() || progress_point->lineno == -1)))
+  {
+    agent_args::report_error("Missing package, progress class, or progress point");
   }
 }
 
@@ -231,17 +251,6 @@ void Profiler::signal_user_threads() {
   }
   user_threads_lock = 0;
   std::atomic_thread_fence(std::memory_order_release);
-}
-
-void Profiler::print_usage() {
-  std::cout
-    << "usage: java -agentpath:<absolute_path_to_agent>="
-    << "pkg=<package_name>_"
-    << "progress-point=<class:line_no>_"
-    << "end-to-end (optional)_"
-    << "warmup=<warmup_time_ms> (optional - default 5000 ms)"
-    << "slow-exp (optional - perform exponential slowdown of experiment time with low delta)"
-    << std::endl;
 }
 
 /**
@@ -634,7 +643,7 @@ void Profiler::setJNI(JNIEnv* jni){
   jni_ = jni;
 }
 
-void Profiler::prepareScope(std::string& scope) {
+void Profiler::prepare_scope(std::string& scope) {
     std::replace(scope.begin(), scope.end(), '.', '/');
 }
 
