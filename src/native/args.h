@@ -7,7 +7,8 @@
 enum profiler_option
 {
   _unknown,
-  _package,
+  _search_scopes,
+  _ignored_scopes,
   _progress_point,
   _end_to_end,
   _warmup,
@@ -18,7 +19,8 @@ namespace agent_args
 {
   profiler_option from_string(std::string &option)
   {
-    if (option == "pkg" || option == "package") return _package;
+    if (option == "pkg" || option == "package" || option == "search") return _search_scopes;
+    if (option == "ignore") return _ignored_scopes;
     if (option == "progress-point") return _progress_point;
     if (option == "end-to-end") return _end_to_end;
     if (option == "warmup") return _warmup;

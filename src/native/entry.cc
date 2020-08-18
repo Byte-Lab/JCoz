@@ -127,6 +127,25 @@ static void releaseCreateLock() {
   std::atomic_thread_fence(std::memory_order_release);
 }
 
+bool is_prefix(const char* prefix, char* str)
+{
+  return strstr(str, prefix) == str + sizeof(char);
+}
+
+using is_prefix_pred_t = std::function<bool(std::string&)>;
+
+bool contains_prefix(std::vector<std::string>& elements, is_prefix_pred_t predicate)
+{
+  return std::find_if(std::begin(elements), std::end(elements), predicate) != std::end(elements);
+}
+
+// TODO faster search (trie maybe)
+bool is_in_allowed_scope(char *class_sig)
+{
+  auto predicate = [&class_sig](std::string &scope) { return is_prefix(scope.c_str(), class_sig); };
+  return !contains_prefix(Profiler::get_ignored_scopes(), predicate)
+         && contains_prefix(Profiler::get_search_scopes(), predicate);
+}
 
 // Calls GetClassMethods on a given class to force the creation of
 // jmethodIDs of it.
@@ -153,9 +172,9 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
     logger->info(
         "Creating JMethod IDs. [Class: {class}] [Scope: {scope}]",
         fmt::arg("class", ksig.Get()), fmt::arg("scope", package_str));
-    if( strstr(ksig.Get(), package_str.c_str()) == ksig.Get() ) {
-      prof->addInScopeMethods(method_count, methods.Get());
-
+    if (is_in_allowed_scope(ksig.Get()))
+    {
+      Profiler::addInScopeMethods(method_count, methods.Get());
     }
 
     //TODO: this matches a prefix. class name AA will match a progress

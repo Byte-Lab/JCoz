@@ -39,6 +39,7 @@
 #include <climits>
 #include <string>
 #include <sstream>
+#include <iterator>
 
 #include "display.h"
 #include "globals.h"
@@ -96,6 +97,8 @@ bool Profiler::prof_ready = false;
 std::string Profiler::package;
 struct ProgressPoint* Profiler::progress_point = nullptr;
 std::string Profiler::progress_class;
+std::vector<std::string> Profiler::search_scopes;
+std::vector<std::string> Profiler::ignored_scopes;
 
 static std::atomic<int> call_index(0);
 static JVMPI_CallFrame static_call_frames[NUM_CALL_FRAMES];
@@ -144,10 +147,27 @@ void Profiler::ParseOptions(const char *options)
         agent_args::report_error(fmt::format("Unknown option: {}", option).c_str());
         break;
 
-      case _package:
-        Profiler::package = value;
-        prepare_scope(Profiler::package);
+      case _search_scopes:
+      {
+        std::stringstream search_scopes_stream(value);
+        while (std::getline(search_scopes_stream, item, '|'))
+        {
+          prepare_scope(item);
+          add_search_scope(item);
+        }
         break;
+      }
+
+      case _ignored_scopes:
+      {
+        std::stringstream ignore_scopes_stream(value);
+        while (std::getline(ignore_scopes_stream, item, '|'))
+        {
+          prepare_scope(item);
+          add_ignored_scope(item);
+        }
+        break;
+      }
 
       case _progress_point:
       {
@@ -175,16 +195,25 @@ void Profiler::ParseOptions(const char *options)
     }
   }
 
-  logger->info(
-          "Profiler arguments:\n"
-          "\tprogress point: {}:{}\n"
-          "\tscope: {}\n"
-          "\twarmup: {}us\n"
-          "\tend-to-end: {}\n"
-          "\texperiment duration: {}",
-          progress_class, progress_point->lineno, Profiler::package, warmup_time, end_to_end, fix_exp);
+  const char *const delim = ", ";
 
-  if (Profiler::package.empty() || (!end_to_end && (progress_class.empty() || progress_point->lineno == -1)))
+  std::stringstream joint_search_scopes;
+  std::copy(search_scopes.begin(), search_scopes.end(), std::ostream_iterator<std::string>(joint_search_scopes, delim));
+
+  std::stringstream joint_ignored_scopes;
+  std::copy(ignored_scopes.begin(), ignored_scopes.end(),
+            std::ostream_iterator<std::string>(joint_ignored_scopes, delim));
+
+  logger->info("Profiler arguments:\n"
+               "\tprogress point: {}:{}\n"
+               "\tsearch scopes: {}\n"
+               "\tignored scopes: {}\n"
+               "\twarmup: {}us\n"
+               "\tend-to-end: {}\n"
+               "\tfixed experiment duration: {}",
+               progress_class, progress_point->lineno, joint_search_scopes.str(), joint_ignored_scopes.str(),
+               warmup_time, end_to_end, fix_exp);
+  if (search_scopes.empty() || (!end_to_end && (progress_class.empty() || progress_point->lineno == -1)))
   {
     agent_args::report_error("Missing package, progress class, or progress point");
   }
@@ -645,6 +674,16 @@ void Profiler::setJNI(JNIEnv* jni){
 
 void Profiler::prepare_scope(std::string& scope) {
     std::replace(scope.begin(), scope.end(), '.', '/');
+}
+
+void Profiler::add_search_scope(string &scope)
+{
+  search_scopes.push_back(scope);
+}
+
+void Profiler::add_ignored_scope(std::string& scope)
+{
+  ignored_scopes.push_back(scope);
 }
 
 void Profiler::Handle(int signum, siginfo_t *info, void *context) {

@@ -97,6 +97,9 @@ class Profiler {
 
     static std::shared_ptr<spdlog::logger> &getLogger() { return logger; };
 
+    static std::vector<std::string>& get_search_scopes() { return search_scopes; }
+    static std::vector<std::string>& get_ignored_scopes() { return ignored_scopes; }
+
     static std::unordered_set<void *> &getInScopeMethods() { return in_scope_ids; }
 
     static struct Experiment &getCurrentExperiment() { return current_experiment; }
@@ -167,6 +170,9 @@ class Profiler {
 
     static void prepare_scope(std::string &scope);
 
+    static void add_search_scope(std::string &scope);
+    static void add_ignored_scope(std::string &scope);
+
     static jobject mbean;
 
     static jmethodID mbean_cache_method_id;
@@ -226,6 +232,9 @@ class Profiler {
     static bool prof_ready;
 
     static bool fix_exp;
+
+    static std::vector<std::string> search_scopes;
+    static std::vector<std::string> ignored_scopes;
 
     static std::shared_ptr<spdlog::logger> logger;
 };
