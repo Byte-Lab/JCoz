@@ -383,6 +383,8 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
     for (int i = 0; (i < call_index) && (i < NUM_CALL_FRAMES); i++) {
       call_frames.push_back(static_call_frames[i]);
     }
+    frame_lock = 0;
+    std::atomic_thread_fence(std::memory_order_release);
     if (call_frames.size() > 0) {
       logger->debug("Had {} call frames. Checking for in scope call frame...", call_frames.size());
       call_index = 0;
@@ -404,8 +406,6 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
       if( entries == NULL ) {
         // TODO(dcv): Should we clear the call frames here?
         logger->info("No in scope frames found. Trying again.");
-        frame_lock = 0;
-        std::atomic_thread_fence(std::memory_order_release);
         continue;
       }
 
@@ -444,14 +444,13 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
         current_experiment.location_ranges[i] = location_ranges[i];
       }
       call_index = 0;
-      frame_lock = 0;
-      std::atomic_thread_fence(std::memory_order_release);
 
       runExperiment(jni_env);
+
+      call_frames.clear();
       while (!__sync_bool_compare_and_swap(&frame_lock, 0, 1))
         ;
       std::atomic_thread_fence(std::memory_order_acquire);
-      call_frames.clear();
       memset(static_call_frames, 0, NUM_CALL_FRAMES * sizeof(JVMPI_CallFrame));
       frame_lock = 0;
       std::atomic_thread_fence(std::memory_order_release);
@@ -459,8 +458,6 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
       logger->debug("Finished clearing frames and deallocating entries...");
     } else {
       logger->info("No frames found in agent thread. Trying sampling loop again...");
-      frame_lock = 0;
-      std::atomic_thread_fence(std::memory_order_release);
     }
   }
 
