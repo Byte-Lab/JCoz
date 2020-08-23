@@ -676,7 +676,7 @@ void Profiler::prepare_scope(std::string& scope) {
     std::replace(scope.begin(), scope.end(), '.', '/');
 }
 
-void Profiler::add_search_scope(string &scope)
+void Profiler::add_search_scope(std::string& scope)
 {
   search_scopes.push_back(scope);
 }
