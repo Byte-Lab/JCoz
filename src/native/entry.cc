@@ -127,6 +127,27 @@ static void releaseCreateLock() {
   std::atomic_thread_fence(std::memory_order_release);
 }
 
+bool is_class_fqn_prefix(const char* prefix, char* class_sig)
+{
+  // Assumed that class signature has format `L<name>;`,
+  // and that prefix does not have additional symbols.
+  // So to check that <name> itself has given prefix,
+  // we must skip the first symbol of the signature.
+  return strstr(class_sig, prefix) == class_sig + 1;
+}
+
+bool contains_class_fqn_prefix(std::vector<std::string>& elements, char* class_sig)
+{
+  auto predicate = [&class_sig](std::string &scope) { return is_class_fqn_prefix(scope.c_str(), class_sig); };
+  return std::find_if(std::begin(elements), std::end(elements), predicate) != std::end(elements);
+}
+
+// TODO faster search (trie maybe)
+bool is_in_allowed_scope(char *class_sig)
+{
+  return !contains_class_fqn_prefix(Profiler::get_ignored_scopes(), class_sig)
+         && contains_class_fqn_prefix(Profiler::get_search_scopes(), class_sig);
+}
 
 // Calls GetClassMethods on a given class to force the creation of
 // jmethodIDs of it.
@@ -149,19 +170,17 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
     JvmtiScopedPtr<char> ksig(jvmti);
     jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
 
-    std::string package_str = "L" + prof->getPackage();
     logger->info(
-        "Creating JMethod IDs. [Class: {class}] [Scope: {scope}]",
-        fmt::arg("class", ksig.Get()), fmt::arg("scope", package_str));
-    if( strstr(ksig.Get(), package_str.c_str()) == ksig.Get() ) {
-      prof->addInScopeMethods(method_count, methods.Get());
-
+        "Creating JMethod IDs. [Class: {class}]",
+        fmt::arg("class", ksig.Get()));
+    if (is_in_allowed_scope(ksig.Get()))
+    {
+      Profiler::addInScopeMethods(method_count, methods.Get());
     }
 
     //TODO: this matches a prefix. class name AA will match a progress
     // point set with class A
-    std::string progress_pt_str = "L" + prof->getProgressClass();
-    if( strstr(ksig.Get(), progress_pt_str.c_str()) == ksig.Get() ) {
+    if( strstr(ksig.Get(), prof->getProgressClass().c_str()) == ksig.Get() ) {
       prof->addProgressPoint(method_count, methods.Get());
     }
   }
