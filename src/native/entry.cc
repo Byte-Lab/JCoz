@@ -168,10 +168,9 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
     JvmtiScopedPtr<char> ksig(jvmti);
     jvmti->GetClassSignature(klass, ksig.GetRef(), NULL);
 
-    std::string package_str = "L" + prof->getPackage();
     logger->info(
-        "Creating JMethod IDs. [Class: {class}] [Scope: {scope}]",
-        fmt::arg("class", ksig.Get()), fmt::arg("scope", package_str));
+        "Creating JMethod IDs. [Class: {class}]",
+        fmt::arg("class", ksig.Get()));
     if (is_in_allowed_scope(ksig.Get()))
     {
       Profiler::addInScopeMethods(method_count, methods.Get());
@@ -179,8 +178,7 @@ void CreateJMethodIDsForClass(jvmtiEnv *jvmti, jclass klass) {
 
     //TODO: this matches a prefix. class name AA will match a progress
     // point set with class A
-    std::string progress_pt_str = "L" + prof->getProgressClass();
-    if( strstr(ksig.Get(), progress_pt_str.c_str()) == ksig.Get() ) {
+    if( strstr(ksig.Get(), prof->getProgressClass().c_str()) == ksig.Get() ) {
       prof->addProgressPoint(method_count, methods.Get());
     }
   }
