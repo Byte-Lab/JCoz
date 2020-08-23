@@ -377,6 +377,12 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
           fmt::arg("remaining_time", total_needed_time - total_accrued_time));
     }
 
+    // Copy shared and unsafe static_call_frames to variable
+    // that is local for the profiler thread, so it's enough
+    // to synchronize on copying here and clearing later.
+    // Any other code between these actions does not require
+    // to be locked, too, since this lock is intended
+    // to protect static_call_frames only.
     while (!__sync_bool_compare_and_swap(&frame_lock, 0, 1))
       ;
     std::atomic_thread_fence(std::memory_order_acquire);
@@ -385,6 +391,7 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
     }
     frame_lock = 0;
     std::atomic_thread_fence(std::memory_order_release);
+
     if (call_frames.size() > 0) {
       logger->debug("Had {} call frames. Checking for in scope call frame...", call_frames.size());
       call_index = 0;
@@ -448,12 +455,15 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
       runExperiment(jni_env);
 
       call_frames.clear();
+
+      // Synchronize on clearing shared static_call_frames
       while (!__sync_bool_compare_and_swap(&frame_lock, 0, 1))
         ;
       std::atomic_thread_fence(std::memory_order_acquire);
       memset(static_call_frames, 0, NUM_CALL_FRAMES * sizeof(JVMPI_CallFrame));
       frame_lock = 0;
       std::atomic_thread_fence(std::memory_order_release);
+
       jvmti->Deallocate((unsigned char *)entries);
       logger->debug("Finished clearing frames and deallocating entries...");
     } else {
