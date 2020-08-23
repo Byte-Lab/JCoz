@@ -127,24 +127,26 @@ static void releaseCreateLock() {
   std::atomic_thread_fence(std::memory_order_release);
 }
 
-bool is_prefix(const char* prefix, char* str)
+bool is_class_fqn_prefix(const char* prefix, char* class_sig)
 {
-  return strstr(str, prefix) == str + sizeof(char);
+  // Assumed that class signature has format `L<name>;`,
+  // and that prefix does not have additional symbols.
+  // So to check that <name> itself has given prefix,
+  // we must skip the first symbol of the signature.
+  return strstr(class_sig, prefix) == class_sig + 1;
 }
 
-using is_prefix_pred_t = std::function<bool(std::string&)>;
-
-bool contains_prefix(std::vector<std::string>& elements, is_prefix_pred_t predicate)
+bool contains_class_fqn_prefix(std::vector<std::string>& elements, char* class_sig)
 {
+  auto predicate = [&class_sig](std::string &scope) { return is_class_fqn_prefix(scope.c_str(), class_sig); };
   return std::find_if(std::begin(elements), std::end(elements), predicate) != std::end(elements);
 }
 
 // TODO faster search (trie maybe)
 bool is_in_allowed_scope(char *class_sig)
 {
-  auto predicate = [&class_sig](std::string &scope) { return is_prefix(scope.c_str(), class_sig); };
-  return !contains_prefix(Profiler::get_ignored_scopes(), predicate)
-         && contains_prefix(Profiler::get_search_scopes(), predicate);
+  return !contains_class_fqn_prefix(Profiler::get_ignored_scopes(), class_sig)
+         && contains_class_fqn_prefix(Profiler::get_search_scopes(), class_sig);
 }
 
 // Calls GetClassMethods on a given class to force the creation of
