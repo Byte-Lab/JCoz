@@ -10,7 +10,7 @@ For documentation, including installing, building, and using JCoz, please see ou
  - [spdlog](https://github.com/gabime/spdlog) (`0.11.0` or higher)
    - `apt-get install libspdlog-dev` for debian/ubuntu
    - `yum install spdlog-devel` for fedora/rhel/centos
- - make
+ - make, maven, g++
  - jdk 1.8 (newer jdk's will result in a (maven) failure during make all)
 
 # Getting Started Tutorial

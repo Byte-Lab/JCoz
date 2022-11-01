@@ -4,6 +4,7 @@
 #include "globals.h"
 #include <vector>
 #include <map>
+#include <string>
 
 namespace bci_hits
 {
