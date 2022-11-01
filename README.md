@@ -1,7 +1,9 @@
 [![Join the chat at https://gitter.im/JCoz-profiler/community](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/JCoz-profiler/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 # Overview
-JCoz is the world's first causal profiler for Java (and eventually all JVM) programs. It was inspired by [coz](https://github.com/plasma-umass/coz), the original causal profiler.
+JCoz is the world's first causal profiler for Java (and eventually all JVM) programs. It was inspired by [coz](https://github.com/plasma-umass/coz), the original causal profiler ([coz paper](https://dl.acm.org/doi/pdf/10.1145/3205911)).
+
+Before using JCoz, recommended reading: [JCoz outline](https://decave.github.io/JCoz/)
 
 For documentation, including installing, building, and using JCoz, please see our [Wiki page](https://github.com/Decave/JCoz/wiki) page.
 
