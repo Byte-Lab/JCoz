@@ -35,4 +35,5 @@ src/java/target
 .project
 .scannerwork
 .settings
-run_rsync.sh
+*run_rsync*.sh
+*.DS_Store
