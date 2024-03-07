@@ -404,24 +404,15 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
       jint end_line; //exclusive
       jint line = -1;
       std::vector<std::pair<jint, jint>> location_ranges;
-
-      bool select_last_line = true;
       for (int i = 1; i < num_entries; i++) {
         if (line == -1
             && entries[i].start_location > exp_frame.lineno) {
           line = entries[i - 1].line_number;
           current_experiment.lineno = line;
-          select_last_line = false;
           break;
         }
       }
-
-      if (select_last_line && num_entries > 0) {
-        line = entries[num_entries - 1].line_number;
-        current_experiment.lineno = line;
-      }
-
-      for (int i = 0; i < num_entries; i++) {
+      for (int i = 1; i < num_entries; i++) {
         if (entries[i].line_number == line) {
           if (i < num_entries - 1) {
             location_ranges.push_back(
