@@ -91,8 +91,7 @@ bool Profiler::prof_ready = false;
 std::string Profiler::package;
 struct ProgressPoint* Profiler::progress_point = nullptr;
 std::string Profiler::progress_class;
-std::map<jmethodID, std::map<jint, bci_hits::hit_freq_t>> bci_hits::_freqs;
-std::map<jmethodID, char*> bci_hits::_declaring_classes;
+
 
 static std::atomic<int> call_index(0);
 static JVMPI_CallFrame static_call_frames[NUM_CALL_FRAMES];
@@ -317,8 +316,6 @@ void Profiler::runExperiment(JNIEnv * jni_env) {
     }
   }
 
-  bci_hits::add_hit(sig, current_experiment.method_id, current_experiment.lineno, current_experiment.bci);
-
   // Log the run experiment results
   logger->info(
       "Ran experiment: [class: {class}:{line_no}] [speedup: {speedup}] [points hit: {points_hit}] [delay: {delay}] [duration: {duration}] [new exp time: {exp_time}]",
@@ -328,6 +325,7 @@ void Profiler::runExperiment(JNIEnv * jni_env) {
   logger->flush();
 
   delete[] current_experiment.location_ranges;
+  free(sig);
 
   logger->info("Finished experiment, flushed logs, and delete current location ranges.");
 }
@@ -400,7 +398,6 @@ Profiler::runAgentThread(jvmtiEnv *jvmti_env, JNIEnv *jni_env, void *args) {
 
       logger->debug("Found in scope frames. Choosing a frame and running experiment...");
       current_experiment.method_id = exp_frame.method_id;
-      current_experiment.bci = exp_frame.lineno;
       jint start_line;
       jint end_line; //exclusive
       jint line = -1;
@@ -849,10 +846,6 @@ void Profiler::Stop() {
     logger->info("Profiler finished current cycle...");
   }
 
-  std::vector<std::string> hits = bci_hits::create_dump();
-  for (std::string& hit : hits) {
-      logger->info("{}", hit);
-  }
   clearInScopeMethods();
   signal(SIGPROF, SIG_IGN);
   logger->flush();
@@ -872,35 +865,4 @@ Profiler::HandleBreakpoint(
     ) {
   curr_ut->points_hit += in_experiment;
 }
-
-void bci_hits::add_hit(char* class_fqn, jmethodID method_id, jint line_number, jint bci)
-{
-    _freqs[method_id][line_number][bci]++;
-    _declaring_classes[method_id] = class_fqn;
-}
-
-std::vector<std::string> bci_hits::create_dump()
-{
-    std::vector<std::string> result;
-    result.emplace_back("Bytecode index hits:");
-    for (auto method_it = _freqs.begin(); method_it != _freqs.end(); ++method_it)
-    {
-        char* class_fqn = _declaring_classes[method_it->first];
-        result.emplace_back(fmt::format("\tFor class {}:", class_fqn));
-        for (auto line_it = method_it->second.begin(); line_it != method_it->second.end(); ++line_it)
-        {
-            jint line_number = line_it->first;
-            std::stringstream ss;
-            ss << "\t\t" << line_number << ": ";
-            for (auto bci_it = line_it->second.begin(); bci_it != line_it->second.end(); ++bci_it)
-            {
-                ss << fmt::format("({}, {}); ", bci_it->first, bci_it->second);
-            }
-            result.emplace_back(ss.str());
-        }
-        free(class_fqn);
-    }
-    return result;
-}
-
 
