@@ -87,8 +87,6 @@ class Profiler {
 
     void Stop();
 
-    void ParseOptions(const char *options);
-
     static std::string &getPackage() { return package; }
 
     static std::string &getProgressClass() { return progress_class; }
@@ -162,8 +160,6 @@ class Profiler {
     static bool inline inExperiment(JVMPI_CallFrame &curr_frame);
     static bool inline frameInScope(JVMPI_CallFrame &curr_frame);
     DISALLOW_COPY_AND_ASSIGN(Profiler);
-
-    static void prepareScope(std::string &scope);
 
     static jobject mbean;
 

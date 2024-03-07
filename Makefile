@@ -83,7 +83,7 @@ OBJECTS = $(patsubst $(SRC_DIR)/%,$(BUILD_DIR)/%,$(_OBJECTS))
 $(BUILD_DIR)/%.pic.o: $(SRC_DIR)/%.cc
 	$(CC) $(INCLUDES) $(COPTS) -c $< -o $@
 
-all: native
+all: native java tests
 
 native: $(OBJECTS)
 	$(CC) $(COPTS) -shared \

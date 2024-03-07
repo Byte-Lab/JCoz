@@ -103,70 +103,6 @@ nanoseconds_type startup_time;
 // Logger
 std::shared_ptr<spdlog::logger> Profiler::logger = spdlog::basic_logger_mt("basic_logger", "log.txt");
 
-void Profiler::ParseOptions(const char *options) {
-  if (options == NULL) {
-    fprintf(stderr, "Missing options\n");
-    print_usage();
-    exit(1);
-  } else {
-    logger->info("Received options: {}", options);
-  }
-  std::string options_str(options);
-  std::stringstream ss(options_str);
-  std::string item;
-  std::vector<std::string> cmd_line_options;
-  progress_point = new ProgressPoint();
-  progress_point->lineno = -1;
-  progress_point->method_id = nullptr;
-
-  // split underscore delimited line into options
-  // (we can't use semicolon because bash is dumb)
-  while (std::getline(ss, item, '_')) {
-    cmd_line_options.push_back(item);
-  }
-
-  for (auto i = cmd_line_options.begin(); i != cmd_line_options.end(); i++) {
-    size_t equal_index = i->find('=');
-    std::string option = i->substr(0, equal_index);
-    std::string value = i->substr(equal_index + 1);
-
-    // extract package
-    if (option == "pkg" || option == "package") {
-      Profiler::package = value;
-      prepareScope(Profiler::package);
-    } else if (option == "progress-point") {
-
-      // else extract progress point
-      size_t colon_index = value.find(':');
-      if (colon_index == std::string::npos) {
-          fprintf(stderr, "Missing progress point\n");
-          print_usage();
-          exit(1);
-      }
-
-      Profiler::progress_class = value.substr(0, colon_index);
-      progress_point->lineno = std::stoi(value.substr(colon_index + 1));
-
-    } else if (option == "end-to-end") {
-      end_to_end = true;
-    } else if (option == "warmup") {
-      // We expect # of milliseconds so multiply by 1000 for usleep (takes microseconds)
-      warmup_time = std::stol(value) * 1000;
-    } else if (option == "fix-exp") {
-      fix_exp = true;
-    }
-  }
-
-  logger->info(
-          "Profiler arguments:\n\tprogress point: {}:{}\n\tscope: {}\n\twarmup: {}us\n\tend-to-end: {}\n\tfixed experiment duration: {}",
-          progress_class, progress_point->lineno, Profiler::package, warmup_time, end_to_end, fix_exp);
-  if (Profiler::package.empty() || (!end_to_end && (progress_class.empty() || progress_point->lineno == -1))) {
-    fprintf(stderr, "Missing package, progress class, or progress point\n");
-    print_usage();
-    exit(1);
-  }
-}
-
 /**
  * Wrapper function for sleeping
  */
@@ -304,6 +240,12 @@ void Profiler::runExperiment(JNIEnv * jni_env) {
   // throw out bad samples
   if( sig == NULL ) return;
   cleanSignature(sig);
+
+  jstring javaSig = jni_env->NewStringUTF(sig);
+  jni_env->CallVoidMethod(Profiler::mbean, Profiler::mbean_cache_method_id, javaSig, current_experiment.lineno,
+      +current_experiment.speedup, (current_experiment.duration - current_experiment.delay),
+      current_experiment.points_hit);
+  jni_env->DeleteLocalRef(javaSig);
 
   // printf("Total experiment delay: %ld, total duration: %ld\n", current_experiment.delay, current_experiment.duration);
 
@@ -628,10 +570,6 @@ void Profiler::clearMBeanObject(){
 
 void Profiler::setJNI(JNIEnv* jni){
   jni_ = jni;
-}
-
-void Profiler::prepareScope(std::string& scope) {
-    std::replace(scope.begin(), scope.end(), '.', '/');
 }
 
 void Profiler::Handle(int signum, siginfo_t *info, void *context) {
