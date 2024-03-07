@@ -52,6 +52,19 @@ struct Experiment {
   int num_ranges;
 };
 
+class bci_hits
+{
+public:
+    using hit_freq_t = std::map<jint, unsigned int>;
+
+    static void add_hit(char* class_fqn, jmethodID method_id, jint line_number, jint bci);
+    static std::vector<std::string> create_dump();
+
+private:
+    static std::map<jmethodID, std::map<jint, hit_freq_t>> _freqs;
+    static std::map<jmethodID, char*> _declaring_classes;
+};
+
 struct UserThread {
   pthread_t thread;
   long local_delay = 0;
